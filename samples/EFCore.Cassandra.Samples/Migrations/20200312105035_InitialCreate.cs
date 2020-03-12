@@ -1,6 +1,4 @@
-﻿// Copyright (c) SimpleIdServer. All rights reserved.
-// Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Numerics;
@@ -9,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace EFCore.Cassandra.Samples.Migrations
 {
-    public partial class Init : Migration
+    public partial class InitialCreate : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -46,12 +44,29 @@ namespace EFCore.Cassandra.Samples.Migrations
                 {
                     table.PrimaryKey("PK_applicants", x => new { x.id, x.LastName });
                 });
+
+            migrationBuilder.CreateTable(
+                name: "cvs",
+                schema: "cv",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(nullable: false),
+                    Name = table.Column<string>(nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_cvs", x => x.Id);
+                });
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
                 name: "applicants",
+                schema: "cv");
+
+            migrationBuilder.DropTable(
+                name: "cvs",
                 schema: "cv");
         }
     }
