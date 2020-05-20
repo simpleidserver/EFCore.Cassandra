@@ -25,9 +25,9 @@ namespace EFCore.Cassandra.Samples
             modelBuilder.ForCassandraAddKeyspace("cv", new KeyspaceReplicationSimpleStrategyClass(2));
             modelBuilder.Entity<Applicant>()
                 .ToTable("applicants", "cv")
-                .HasKey(p => new { p.Id, p.LastName });
+                .HasKey(p => new { p.Id, p.Order });
             modelBuilder.Entity<Applicant>()
-                .ForCassandraSetClusterColumns(s => new { s.LastName });
+                .ForCassandraSetClusterColumns(s => new { s.Order });
             modelBuilder.Entity<Applicant>()
                .Property(p => p.TimeUuid)
                .HasConversion(new TimeUuidToGuidConverter());

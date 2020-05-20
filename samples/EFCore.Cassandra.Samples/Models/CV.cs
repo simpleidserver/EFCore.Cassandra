@@ -7,6 +7,7 @@ namespace EFCore.Cassandra.Samples.Models
     public class CV
     {
         public Guid Id { get; set; }
+        public Guid CvId { get; set; }
         public string Name { get; set; }
     }
 }

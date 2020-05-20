@@ -141,6 +141,26 @@ namespace Microsoft.EntityFrameworkCore.Query
             return selectExpression;
         }
 
+        protected override Expression VisitSqlParameter(SqlParameterExpression sqlParameterExpression)
+        {
+            // Sql.Append(" ? ");
+            // return sqlParameterExpression;
+            var parameterNameInCommand = _sqlGenerationHelper.GenerateParameterName(sqlParameterExpression.Name).Replace("_", "").TrimStart(':');
+
+            if (Sql.Parameters.All(p => p.InvariantName != sqlParameterExpression.Name))
+            {
+                Sql.AddParameter(
+                    sqlParameterExpression.Name,
+                    parameterNameInCommand,
+                    sqlParameterExpression.TypeMapping,
+                    sqlParameterExpression.Type.IsNullableType());
+            }
+
+            // Sql.Append(_sqlGenerationHelper.GenerateParameterNamePlaceholder(sqlParameterExpression.Name));
+            Sql.Append($" :{parameterNameInCommand} ");
+            return sqlParameterExpression;
+        }
+
         protected override void GenerateLimitOffset(SelectExpression selectExpression)
         {
             if (selectExpression.Limit != null)

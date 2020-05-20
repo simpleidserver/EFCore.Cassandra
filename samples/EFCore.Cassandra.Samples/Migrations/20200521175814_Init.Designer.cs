@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EFCore.Cassandra.Samples.Migrations
 {
     [DbContext(typeof(FakeDbContext))]
-    [Migration("20200520135456_Init")]
+    [Migration("20200521175814_Init")]
     partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -29,8 +29,11 @@ namespace EFCore.Cassandra.Samples.Migrations
                         .HasColumnName("id")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("LastName")
-                        .HasColumnType("text");
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ApplicantId")
+                        .HasColumnType("uuid");
 
                     b.Property<BigInteger>("BigInteger")
                         .HasColumnType("varint");
@@ -62,6 +65,9 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.Property<IPAddress>("Ip")
                         .HasColumnType("inet");
 
+                    b.Property<string>("LastName")
+                        .HasColumnType("text");
+
                     b.Property<LocalDate>("LocalDate")
                         .HasColumnType("date");
 
@@ -86,17 +92,20 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.Property<Guid>("TimeUuid")
                         .HasColumnType("uuid");
 
-                    b.HasKey("Id", "LastName");
+                    b.HasKey("Id", "Order");
 
                     b.ToTable("applicants","cv");
 
-                    b.HasAnnotation("Cassandra:ClusterColumns", new[] { "LastName" });
+                    b.HasAnnotation("Cassandra:ClusterColumns", new[] { "Order" });
                 });
 
             modelBuilder.Entity("EFCore.Cassandra.Samples.Models.CV", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CvId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Name")

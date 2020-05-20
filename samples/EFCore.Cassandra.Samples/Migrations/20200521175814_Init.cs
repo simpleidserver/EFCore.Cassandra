@@ -20,7 +20,9 @@ namespace EFCore.Cassandra.Samples.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(nullable: false),
-                    LastName = table.Column<string>(nullable: false),
+                    Order = table.Column<int>(nullable: false),
+                    ApplicantId = table.Column<Guid>(nullable: false),
+                    LastName = table.Column<string>(nullable: true),
                     Long = table.Column<long>(nullable: false),
                     Bool = table.Column<bool>(nullable: false),
                     Decimal = table.Column<decimal>(nullable: false),
@@ -42,7 +44,7 @@ namespace EFCore.Cassandra.Samples.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_applicants", x => new { x.id, x.LastName });
+                    table.PrimaryKey("PK_applicants", x => new { x.id, x.Order });
                 });
 
             migrationBuilder.CreateTable(
@@ -51,6 +53,7 @@ namespace EFCore.Cassandra.Samples.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(nullable: false),
+                    CvId = table.Column<Guid>(nullable: false),
                     Name = table.Column<string>(nullable: true)
                 },
                 constraints: table =>

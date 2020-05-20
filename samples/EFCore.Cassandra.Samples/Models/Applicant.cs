@@ -11,6 +11,8 @@ namespace EFCore.Cassandra.Samples.Models
     public class Applicant
     {
         public Guid Id { get; set; }
+        public int Order { get; set; }
+        public Guid ApplicantId { get; set; }
         public string LastName { get; set; }
         public long Long { get; set; }
         public bool Bool { get; set; }

@@ -11,6 +11,9 @@ namespace EFCore.Cassandra.Samples
 {
     class Program
     {
+        private static Guid ApplicantPartitionId = Guid.Parse("be2106c5-791f-45d2-890a-50fc221f96e8");
+        private static Guid ApplicantId = Guid.Parse("09e0f68e-8818-452a-9a47-3c8ca2c941c8");
+
         static void Main(string[] args)
         {
             using (var dbContext = new FakeDbContext())
@@ -19,26 +22,38 @@ namespace EFCore.Cassandra.Samples
                 var timeUuid = TimeUuid.NewId();
                 dbContext.Applicants.Add(BuildApplicant());
                 dbContext.SaveChanges();
+                Console.WriteLine("Applicant is added");
 
                 var appls = dbContext.Applicants.ToList();
+                Console.WriteLine($"Number of applicants '{dbContext.Applicants.LongCount()}'");
 
-                Console.WriteLine($"Number of applicants : {dbContext.Applicants.LongCount()}");
+                Console.WriteLine("Get applicants by partition key");
+                var filteredApplicants = dbContext.Applicants.Where(_ => _.Id == ApplicantPartitionId).ToList();
+                Console.WriteLine($"Number of applicants '{filteredApplicants.Count}'");
+
+                Console.WriteLine("Order applicants by 'order'");
+                var orderedApplicants = dbContext.Applicants.Where(_ => _.Id == ApplicantPartitionId).OrderBy(_ => _.Order).ToList();
+                Console.WriteLine($"Number of applicants {orderedApplicants.Count}");
 
                 Console.WriteLine("Update the applicant");
                 var applicant = dbContext.Applicants.First();
+                applicant = dbContext.Applicants.First();
                 applicant.Decimal = 10;
                 applicant.Dic = new Dictionary<string, string>
                 {
                     { "toto", "toto" }
                 };
                 dbContext.SaveChanges();
+                Console.WriteLine("Applicant is updated");
 
                 Console.WriteLine("Remove the applicant");
                 applicant = dbContext.Applicants.First();
                 dbContext.Applicants.Remove(applicant);
                 dbContext.SaveChanges();
+                Console.WriteLine("Applicant is removed");
 
-                Console.WriteLine($"Number of applicants : {dbContext.Applicants.LongCount()}");
+                Console.WriteLine($"Number of applicants '{dbContext.Applicants.LongCount()}'");
+                Console.ReadLine();
             }
         }
 
@@ -47,7 +62,9 @@ namespace EFCore.Cassandra.Samples
             var timeUuid = TimeUuid.NewId();
             return new Applicant
             {
-                Id = Guid.NewGuid(),
+                Id = ApplicantPartitionId,
+                ApplicantId = ApplicantId,
+                Order = 0,
                 Lst = new List<string>
                 {
                     "1",
