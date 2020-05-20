@@ -7,14 +7,16 @@ using Cassandra;
 using EFCore.Cassandra.Samples;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace EFCore.Cassandra.Samples.Migrations
 {
     [DbContext(typeof(FakeDbContext))]
-    partial class FakeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200520135456_Init")]
+    partial class Init
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

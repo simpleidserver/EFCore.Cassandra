@@ -3,16 +3,20 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Data;
 using System.Data.Common;
+using System.Net;
+using Cass = Cassandra;
 
 namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
 {
     public class CassandraTypeMapping<T> : RelationalTypeMapping
     {
         private readonly object _defaultValue;
+        private readonly Cass.ColumnTypeCode? _columnType;
 
-        public CassandraTypeMapping(string storeType, object defaultValue, DbType? dbType = null) : base(storeType, typeof(T), dbType)
+        public CassandraTypeMapping(string storeType, object defaultValue, DbType? dbType = null, Cass.ColumnTypeCode? columnType = null) : base(storeType, typeof(T), dbType)
         {
             _defaultValue = defaultValue;
+            _columnType = columnType;
         }
 
         protected CassandraTypeMapping(RelationalTypeMappingParameters parameters) : base(parameters) { }
@@ -23,6 +27,15 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
             if (result.Value == null || result.Value.Equals(default(T)) || string.IsNullOrWhiteSpace(result.Value.ToString()))
             {
                 result.Value = _defaultValue;
+            }
+            else if(_columnType != null)
+            {
+                switch(_columnType.Value)
+                {
+                    case Cass.ColumnTypeCode.Inet:
+                        result.Value = (result.Value as IPAddress).GetAddressBytes();
+                        break;
+                }
             }
 
             return result;

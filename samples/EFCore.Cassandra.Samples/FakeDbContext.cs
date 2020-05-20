@@ -30,7 +30,7 @@ namespace EFCore.Cassandra.Samples
                 .ForCassandraSetClusterColumns(s => new { s.LastName });
             modelBuilder.Entity<Applicant>()
                .Property(p => p.TimeUuid)
-               .HasConversion(timeUuidConverter);
+               .HasConversion(new TimeUuidToGuidConverter());
             modelBuilder.Entity<Applicant>()
                 .Property(p => p.Id)
                 .HasColumnName("id");

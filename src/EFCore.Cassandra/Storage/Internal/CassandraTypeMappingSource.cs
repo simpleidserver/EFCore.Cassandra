@@ -8,6 +8,7 @@ using System.Data;
 using System.Linq;
 using System.Net;
 using System.Numerics;
+using Cass = Cassandra;
 
 namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
 {
@@ -42,7 +43,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
         private static readonly DecimalTypeMapping _decimal = new DecimalTypeMapping(DecimalTypeName);
         private static readonly DoubleTypeMapping _double = new DoubleTypeMapping(DoubleTypeName);
         private static readonly FloatTypeMapping _float = new FloatTypeMapping(FloatTypeName);
-        private static readonly CassandraTypeMapping<IPAddress> _ipAddr = new CassandraTypeMapping<IPAddress>(IpTypeName, string.Empty);
+        private static readonly CassandraTypeMapping<IPAddress> _ipAddr = new CassandraTypeMapping<IPAddress>(IpTypeName, string.Empty, null, Cass.ColumnTypeCode.Inet);
         private static readonly ShortTypeMapping _short = new ShortTypeMapping(SmallIntTypeName);
         private static readonly CassandraTypeMapping<LocalTime> _localTime = new CassandraTypeMapping<LocalTime>(LocalTimeTypeName, new LocalTime(0, 0, 0, 0));
         private static readonly CassandraTypeMapping<DateTimeOffset> _timeStamp = new CassandraTypeMapping<DateTimeOffset>(TimestampTypeName, default(DateTimeOffset));

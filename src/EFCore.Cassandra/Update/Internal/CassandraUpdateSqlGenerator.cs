@@ -1,7 +1,9 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
-using Microsoft.EntityFrameworkCore.Update;
+
 using System.Text;
+using JetBrains.Annotations;
+using Microsoft.EntityFrameworkCore.Update;
 
 namespace Microsoft.EntityFrameworkCore.Cassandra.Update.Internal
 {
@@ -9,7 +11,6 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Update.Internal
     {
         public CassandraUpdateSqlGenerator(UpdateSqlGeneratorDependencies dependencies) : base(dependencies)
         {
-
         }
 
         protected override void AppendIdentityWhereCondition(StringBuilder commandStringBuilder, ColumnModification columnModification)

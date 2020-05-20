@@ -1,6 +1,6 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
-using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Cassandra.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using System;
@@ -11,14 +11,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
 {
     public class CassandraMigrationsSqlGenerator : MigrationsSqlGenerator
     {
-        public CassandraMigrationsSqlGenerator(MigrationsSqlGeneratorDependencies dependencies) : base(dependencies)
-        {
-        }
-
-        protected override void Generate(CreateTableOperation operation, IModel model, MigrationCommandListBuilder builder)
-        {
-            base.Generate(operation, model, builder);
-        }
+        public CassandraMigrationsSqlGenerator(MigrationsSqlGeneratorDependencies dependencies) : base(dependencies) { }
 
         protected override void Generate(CreateTableOperation operation, IModel model, MigrationCommandListBuilder builder, bool terminate)
         {
@@ -26,7 +19,6 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 .Append("CREATE TABLE ")
                 .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(operation.Name, operation.Schema))
                 .AppendLine(" (");
-
             using (builder.Indent())
             {
                 for (var i = 0; i < operation.Columns.Count; i++)
@@ -50,9 +42,8 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             }
 
             builder.Append(")");
-
-            var entityType = model.GetEntityTypes().First(s => s.GetAnnotations().Any(a => a.Name == RelationalAnnotationNames.TableName && a.Value.ToString() == operation.Name));
-            var options = entityType.Cassandra().ClusteringOrderByOptions;
+            var entityType = model.GetEntityTypes().First(s => s.GetTableName() == operation.Name);
+            var options = entityType.GetClusteringOrderByOptions();
             if (options.Any())
             {
                 builder.AppendLine().Append("WITH CLUSTERING ORDER BY (");
@@ -71,11 +62,6 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 builder.AppendLine(Dependencies.SqlGenerationHelper.StatementTerminator);
                 EndStatement(builder);
             }
-        }
-
-        protected override void Generate(DropColumnOperation operation, IModel model, MigrationCommandListBuilder builder)
-        {
-            base.Generate(operation, model, builder);
         }
 
         protected override void Generate(DropColumnOperation operation, IModel model, MigrationCommandListBuilder builder, bool terminate)
@@ -105,7 +91,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
 
         protected override void Generate(EnsureSchemaOperation operation, IModel model, MigrationCommandListBuilder builder)
         {
-            var keySpaceConfiguration = model.Cassandra().GetKeyspace(operation.Name);
+            var keySpaceConfiguration = model.GetKeyspace(operation.Name);
             if (keySpaceConfiguration == null)
             {
                 keySpaceConfiguration = new KeyspaceReplicationSimpleStrategyClass(2);
@@ -148,10 +134,10 @@ namespace Microsoft.EntityFrameworkCore.Migrations
 
         protected override void PrimaryKeyConstraint(AddPrimaryKeyOperation operation, IModel model, MigrationCommandListBuilder builder)
         {
-            var entityType = model.GetEntityTypes().First(s => s.GetAnnotations().Any(a => a.Name == RelationalAnnotationNames.TableName && a.Value.ToString() == operation.Table));
+            var entityType = model.GetEntityTypes().First(s => s.GetTableName() == operation.Table);
             builder
                 .Append("PRIMARY KEY ");
-            var clusterColumns = entityType.Cassandra().ClusterColumns;
+            var clusterColumns = entityType.GetClusterColumns();
             builder.Append("(")
                 .Append("(").Append(ColumnList(operation.Columns.Except(clusterColumns).ToArray())).Append(")");
             if (clusterColumns.Any())
@@ -163,30 +149,15 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             builder.Append(")");
         }
 
-        protected override void ColumnDefinition(
-            string schema,
-            string table,
-            string name,
-            Type clrType,
-            string type,
-            bool? unicode,
-            int? maxLength,
-            bool? fixedLength,
-            bool rowVersion,
-            bool nullable,
-            object defaultValue,
-            string defaultValueSql,
-            string computedColumnSql,
-            IAnnotatable annotatable,
-            IModel model,
-            MigrationCommandListBuilder builder)
+        protected override void ColumnDefinition(string schema, string table, string name, ColumnOperation operation, IModel model, MigrationCommandListBuilder builder)
         {
-            var entityType = model.GetEntityTypes().First(s => s.GetAnnotations().Any(a => a.Name == RelationalAnnotationNames.TableName && a.Value.ToString() == table));
+            var columnType = operation.ColumnType ?? GetColumnType(schema, table, name, operation, model);
+            var entityType = model.GetEntityTypes().First(s => s.GetTableName() == table);
             builder
                 .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(name))
                 .Append(" ")
-                .Append(type ?? GetColumnType(schema, table, name, clrType, unicode, maxLength, fixedLength, rowVersion, model));
-            if (entityType.Cassandra().StaticColumns.Contains(name))
+                .Append(columnType);
+            if (entityType.GetStaticColumns().Contains(name))
             {
                 builder.Append(" STATIC");
             }

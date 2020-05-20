@@ -17,7 +17,7 @@ namespace EFCore.Cassandra.Tests.Metadata
             modelBuilder.Entity<Cv>().ForCassandraSetClusterColumns(new[] { "Id" });
 
             var entityType = modelBuilder.Model.FindEntityType(typeof(Cv));
-            var clusterColumns = entityType.Cassandra().ClusterColumns;
+            var clusterColumns = entityType.GetClusterColumns();
 
             Assert.NotNull(clusterColumns);
             Assert.True(clusterColumns.Count() == 1);
@@ -31,7 +31,7 @@ namespace EFCore.Cassandra.Tests.Metadata
             modelBuilder.Entity<Cv>().ForCassandraSetStaticColumns(new[] { "Id" });
 
             var entityType = modelBuilder.Model.FindEntityType(typeof(Cv));
-            var staticColumns = entityType.Cassandra().StaticColumns;
+            var staticColumns = entityType.GetStaticColumns();
 
             Assert.NotNull(staticColumns);
             Assert.True(staticColumns.Count() == 1);

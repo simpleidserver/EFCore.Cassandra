@@ -20,6 +20,8 @@ namespace EFCore.Cassandra.Samples
                 dbContext.Applicants.Add(BuildApplicant());
                 dbContext.SaveChanges();
 
+                var appls = dbContext.Applicants.ToList();
+
                 Console.WriteLine($"Number of applicants : {dbContext.Applicants.LongCount()}");
 
                 Console.WriteLine("Update the applicant");

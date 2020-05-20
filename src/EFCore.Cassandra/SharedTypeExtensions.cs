@@ -95,12 +95,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra
         }
 
         public static bool IsGrouping(this Type type) => IsGrouping(type.GetTypeInfo());
-
-        private static bool IsGrouping(TypeInfo type)
-            => type.IsGenericType
-               && (type.GetGenericTypeDefinition() == typeof(IGrouping<,>)
-                   || type.GetGenericTypeDefinition() == typeof(IAsyncGrouping<,>));
-
+        
         public static Type GetSequenceType(this Type type)
         {
             var sequenceType = TryGetSequenceType(type);

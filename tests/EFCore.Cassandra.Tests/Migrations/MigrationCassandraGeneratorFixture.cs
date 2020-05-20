@@ -98,7 +98,7 @@ namespace EFCore.Cassandra.Tests.Migrations
         [Fact]
         public void When_Create_Table_With_Different_Column_Types_Then_CQL_Is_Returned()
         {
-            // A FAIRE
+            // TODO
         }
 
         [Fact]
@@ -421,7 +421,6 @@ namespace EFCore.Cassandra.Tests.Migrations
         private static string BuildSql(Action<ModelBuilder> modelBuilderCallback, MigrationOperation migrationOperation)
         {
             var fakeDbContext = (IInfrastructure<IServiceProvider>)new FakeDbContext(modelBuilderCallback);
-            var s = fakeDbContext.Instance.GetService(typeof(InternalModelBuilder));
             var migrationsSqlGenerator = (IMigrationsSqlGenerator)fakeDbContext.Instance.GetService(typeof(IMigrationsSqlGenerator));
             return migrationsSqlGenerator.Generate(new[]
             {

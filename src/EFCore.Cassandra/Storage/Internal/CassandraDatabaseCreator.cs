@@ -36,11 +36,13 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
             }
         }
 
-        protected override bool HasTables()
+        public override bool HasTables()
         {
             var database = Dependencies.Connection.DbConnection.Database;
             var sql = $"SELECT count(*) FROM system_schema.tables WHERE keyspace_name='{database}'";
-            return Dependencies.ExecutionStrategyFactory.Create().Execute(_relationalConnection, connection => (int)_rawSqlCommandBuilder.Build(sql).ExecuteScalar(connection) > 0);
+            return Dependencies.ExecutionStrategyFactory.Create().Execute(_relationalConnection, connection => (int)_rawSqlCommandBuilder.Build(sql).ExecuteScalar(
+                new RelationalCommandParameterObject(connection, null, null, null, null)
+                ) > 0);
         }
     }
 }

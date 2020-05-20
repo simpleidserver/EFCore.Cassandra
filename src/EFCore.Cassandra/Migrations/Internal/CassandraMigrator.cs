@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Internal;
@@ -25,6 +26,8 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
         private readonly IRelationalConnection _connection;
         private readonly ISqlGenerationHelper _sqlGenerationHelper;
         private readonly IDiagnosticsLogger<DbLoggerCategory.Migrations> _logger;
+        private readonly IDiagnosticsLogger<DbLoggerCategory.Database.Command> _commandLogger;
+        private readonly ICurrentDbContext _currentContext;
         private readonly string _activeProvider;
 
         public CassandraMigrator(
@@ -36,7 +39,9 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
             IMigrationCommandExecutor migrationCommandExecutor,
             IRelationalConnection connection,
             ISqlGenerationHelper sqlGenerationHelper,
+            ICurrentDbContext currentContext,
             IDiagnosticsLogger<DbLoggerCategory.Migrations> logger,
+            IDiagnosticsLogger<DbLoggerCategory.Database.Command> commandLogger,
             IDatabaseProvider databaseProvider)
         {
             _migrationsAssembly = migrationsAssembly;
@@ -47,7 +52,9 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
             _migrationCommandExecutor = migrationCommandExecutor;
             _connection = connection;
             _sqlGenerationHelper = sqlGenerationHelper;
+            _currentContext = currentContext;
             _logger = logger;
+            _commandLogger = commandLogger;
             _activeProvider = databaseProvider.Name;
         }
 
@@ -67,10 +74,16 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
                 }
 
                 var scripts = _historyRepository.GetCreateScripts();
-                foreach(var script in scripts)
+                foreach (var script in scripts)
                 {
                     var command = _rawSqlCommandBuilder.Build(script);
-                    command.ExecuteNonQuery(_connection);
+                    command.ExecuteNonQuery(
+                    new RelationalCommandParameterObject(
+                        _connection,
+                        null,
+                        null,
+                        _currentContext.Context,
+                        _commandLogger));
                 }
             }
 
@@ -102,7 +115,13 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
                 foreach(var script in scripts)
                 {
                     var command = _rawSqlCommandBuilder.Build(script);
-                    await command.ExecuteNonQueryAsync(_connection, cancellationToken: cancellationToken);
+                    await command.ExecuteNonQueryAsync(
+                    new RelationalCommandParameterObject(
+                        _connection,
+                        null,
+                        null,
+                        _currentContext.Context,
+                        _commandLogger), cancellationToken: cancellationToken);
                 }
             }
 
@@ -335,7 +354,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
 
             return _migrationsSqlGenerator
                 .Generate(migration.UpOperations, migration.TargetModel)
-                .Concat(new[] { new MigrationCommand(insertCommand) })
+                .Concat(new[] { new MigrationCommand(insertCommand, _currentContext.Context, _commandLogger) })
                 .ToList();
         }
 
@@ -352,7 +371,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
 
             return _migrationsSqlGenerator
                 .Generate(migration.DownOperations, previousMigration?.TargetModel)
-                .Concat(new[] { new MigrationCommand(deleteCommand) })
+                .Concat(new[] { new MigrationCommand(deleteCommand, _currentContext.Context, _commandLogger) })
                 .ToList();
         }
     }

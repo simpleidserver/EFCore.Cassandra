@@ -15,9 +15,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage
                 size: 36,
                 valueGeneratorFactory: (p, t) => new SequentialGuidValueGenerator());
 
-        public TimeUuidToGuidConverter(ConverterMappingHints mappingHints = null) : base(ToGuid(), ToTimeUuid(), _defaultHints.With(_defaultHints))
-        {
-        }
+        public TimeUuidToGuidConverter(ConverterMappingHints mappingHints = null) : base(ToGuid(), ToTimeUuid(), _defaultHints.With(_defaultHints)) { }
 
         private static Expression<Func<TimeUuid, Guid>> ToGuid() => v => v == null ? default : v.ToGuid();
         private static Expression<Func<Guid, TimeUuid>> ToTimeUuid() => v => v == null ? default : TimeUuid.Parse(v.ToString());

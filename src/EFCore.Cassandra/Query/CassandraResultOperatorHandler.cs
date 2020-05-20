@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+/*
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Expressions;
@@ -12,10 +13,11 @@ using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-
+*/
+/*
 namespace Microsoft.EntityFrameworkCore.Cassandra.Query
 {
-    public class CassandraResultOperatorHandler : RelationalResultOperatorHandler
+    public class CassandraResultOperatorHandler : IResultOperatorHandler
     {
         private readonly IModel _model;
         private readonly ISqlTranslatingExpressionVisitorFactory _sqlTranslatingExpressionVisitorFactory;
@@ -178,3 +180,4 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Query
         }
     }
 }
+*/
