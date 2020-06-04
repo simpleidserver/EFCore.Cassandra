@@ -5,6 +5,7 @@ using EFCore.Cassandra.Query.Sql.Internal;
 using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Cassandra.Migrations;
 using Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal;
+using Microsoft.EntityFrameworkCore.Cassandra.Query.Internal;
 using Microsoft.EntityFrameworkCore.Cassandra.Query.Sql.Internal;
 using Microsoft.EntityFrameworkCore.Cassandra.Storage;
 using Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal;
@@ -43,6 +44,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IRelationalSqlTranslatingExpressionVisitorFactory, CassandraSqlTranslatingExpressionVisitorFactory>()
                 .TryAdd<IQuerySqlGeneratorFactory, CassandraSqlGeneratorFactory>()
                 .TryAdd<IUpdateSqlGenerator, CassandraUpdateSqlGenerator>()
+                .TryAdd<IQueryableMethodTranslatingExpressionVisitorFactory, CassandraQueryableMethodTranslatingExpressionVisitorFactory>()
                 .TryAddProviderSpecificServices(b => b.TryAddScoped<ICassandraRelationalConnection, CassandraRelationalConnection>())
                 .TryAddProviderSpecificServices(b => b.TryAddTransient<ICassandraHistoryRepository, CassandraHistoryRepository>());
             

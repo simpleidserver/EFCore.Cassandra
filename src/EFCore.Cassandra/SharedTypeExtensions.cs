@@ -3,12 +3,30 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore.Cassandra
 {
     public static class SharedTypeExtensions
     {
+        public static Expression UnwrapTypeConversion(this Expression expression, out Type convertedType)
+        {
+            convertedType = null;
+            while (expression is UnaryExpression unaryExpression
+                && unaryExpression.NodeType == ExpressionType.Convert)
+            {
+                expression = unaryExpression.Operand;
+                if (unaryExpression.Type != typeof(object) // Ignore object conversion
+                    && !unaryExpression.Type.IsAssignableFrom(expression.Type)) // Ignore casting to base type/interface
+                {
+                    convertedType = unaryExpression.Type;
+                }
+            }
+
+            return expression;
+        }
+
         public static Type UnwrapNullableType(this Type type) => Nullable.GetUnderlyingType(type) ?? type;
 
         public static bool IsInteger(this Type type)

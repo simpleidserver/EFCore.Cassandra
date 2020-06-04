@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+using Microsoft.EntityFrameworkCore.Cassandra.Query.Internal;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -64,6 +65,11 @@ namespace Microsoft.EntityFrameworkCore.Query
                                 column.Name, setOperation.Source1.Projection[index].Alias, StringComparison.OrdinalIgnoreCase))
                     .All(e => e);
 
+        public override Expression Visit(Expression node)
+        {
+            return base.Visit(node);
+        }
+
         protected override Expression VisitSelect(SelectExpression selectExpression)
         {
             if (IsNonComposedSetOperation(selectExpression))
@@ -109,8 +115,16 @@ namespace Microsoft.EntityFrameworkCore.Query
             if (selectExpression.Predicate != null)
             {
                 Sql.AppendLine().Append("WHERE ");
-
-                Visit(selectExpression.Predicate);
+                var cassandraBinaryExpression = selectExpression.Predicate as CassandraAllowFilteringBinaryExpression;
+                if (cassandraBinaryExpression != null)
+                {
+                    Visit(cassandraBinaryExpression.BinaryExpression);
+                    Sql.AppendLine(" ALLOW FILTERING");
+                }
+                else
+                {
+                    Visit(selectExpression.Predicate);
+                }
             }
 
             if (selectExpression.GroupBy.Count > 0)

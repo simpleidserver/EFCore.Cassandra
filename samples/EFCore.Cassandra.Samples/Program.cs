@@ -28,11 +28,16 @@ namespace EFCore.Cassandra.Samples
                 Console.WriteLine($"Number of applicants '{dbContext.Applicants.LongCount()}'");
 
                 Console.WriteLine("Get applicants by partition key");
-                var filteredApplicants = dbContext.Applicants.Where(_ => _.Id == ApplicantPartitionId).ToList();
+                var filteredApplicants = dbContext.Applicants.Where(_ => _.Id == ApplicantPartitionId, false).ToList();
                 Console.WriteLine($"Number of applicants '{filteredApplicants.Count}'");
 
+                Console.WriteLine("Get applicants (ALLOW FILTERING)");
+                var allowedFilteredApplicants = dbContext.Applicants.Where(_ => _.LastName == "lastname", true).ToList();
+                Console.WriteLine($"Number of applicants {allowedFilteredApplicants.Count}");
+
                 Console.WriteLine("Order applicants by 'order'");
-                var orderedApplicants = dbContext.Applicants.Where(_ => _.Id == ApplicantPartitionId).OrderBy(_ => _.Order).ToList();
+                var orderedApplicants = dbContext.Applicants.Where(_ => _.Id == ApplicantPartitionId)
+                    .OrderBy(_ => _.Order).ToList();
                 Console.WriteLine($"Number of applicants {orderedApplicants.Count}");
 
                 Console.WriteLine("Update the applicant");
