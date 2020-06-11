@@ -26,7 +26,7 @@ Configure keyspaces
 
 In order to configure a keyspace, open the ``DbContext`` implementation and insert the following line in the ``OnModelCreating`` method::
 
-    modelBuilder.ForCassandraAddKeyspace("<keyspace name>", KeyspaceReplicationSimpleStrategyClass());
+    modelBuilder.ForCassandraAddKeyspace("<keyspace name>", new KeyspaceReplicationSimpleStrategyClass(/* <replication-factor> */));
 
 This method contains two parameters:
 
