@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using Microsoft.EntityFrameworkCore.Cassandra.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 
 namespace Microsoft.EntityFrameworkCore
@@ -38,7 +39,7 @@ namespace Microsoft.EntityFrameworkCore
                 return new CassandraClusteringOrderByOption[0];
             }
 
-            return (IEnumerable<CassandraClusteringOrderByOption>)result.Value;
+            return JsonConvert.DeserializeObject<IEnumerable<CassandraClusteringOrderByOption>>(result.Value.ToString());
         }
 
         public static void SetClusterColumns(this IMutableEntityType entityType, IEnumerable<string> clusterColumns)
@@ -53,7 +54,8 @@ namespace Microsoft.EntityFrameworkCore
 
         public static void SetClusteringOrderByOptions(this IMutableEntityType entityType, IEnumerable<CassandraClusteringOrderByOption> options)
         {
-            entityType.SetOrRemoveAnnotation(CassandraAnnotationNames.ClusteringOrderByOptions, options);
+            var json = JsonConvert.SerializeObject(options);
+            entityType.SetOrRemoveAnnotation(CassandraAnnotationNames.ClusteringOrderByOptions, json);
         }
     }
 }

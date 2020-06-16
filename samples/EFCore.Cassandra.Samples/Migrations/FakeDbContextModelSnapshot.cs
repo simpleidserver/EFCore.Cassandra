@@ -95,6 +95,8 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.ToTable("applicants","cv");
 
                     b.HasAnnotation("Cassandra:ClusterColumns", new[] { "Order" });
+
+                    b.HasAnnotation("Cassandra:ClusteringOrderByOptions", "[{\"ColumnName\":\"Order\",\"Order\":0}]");
                 });
 
             modelBuilder.Entity("EFCore.Cassandra.Samples.Models.CV", b =>

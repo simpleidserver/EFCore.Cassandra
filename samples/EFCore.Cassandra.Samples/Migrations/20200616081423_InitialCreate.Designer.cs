@@ -13,8 +13,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EFCore.Cassandra.Samples.Migrations
 {
     [DbContext(typeof(FakeDbContext))]
-    [Migration("20200521175814_Init")]
-    partial class Init
+    [Migration("20200616081423_InitialCreate")]
+    partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -97,6 +97,8 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.ToTable("applicants","cv");
 
                     b.HasAnnotation("Cassandra:ClusterColumns", new[] { "Order" });
+
+                    b.HasAnnotation("Cassandra:ClusteringOrderByOptions", "[{\"ColumnName\":\"Order\",\"Order\":0}]");
                 });
 
             modelBuilder.Entity("EFCore.Cassandra.Samples.Models.CV", b =>

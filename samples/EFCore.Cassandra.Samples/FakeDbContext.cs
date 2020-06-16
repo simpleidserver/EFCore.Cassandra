@@ -27,7 +27,8 @@ namespace EFCore.Cassandra.Samples
                 .ToTable("applicants", "cv")
                 .HasKey(p => new { p.Id, p.Order });
             modelBuilder.Entity<Applicant>()
-                .ForCassandraSetClusterColumns(s => new { s.Order });
+                .ForCassandraSetClusterColumns(_ => _.Order)
+                .ForCassandraSetClusteringOrderBy(new[] { new CassandraClusteringOrderByOption("Order", CassandraClusteringOrderByOptions.ASC) });
             modelBuilder.Entity<Applicant>()
                .Property(p => p.TimeUuid)
                .HasConversion(new TimeUuidToGuidConverter());
