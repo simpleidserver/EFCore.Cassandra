@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+using Cassandra.Data;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
@@ -87,39 +88,18 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Update.Internal
             var commandBatches = parameters.Item1;
             var connection = parameters.Item2;
             var rowsAffected = 0;
-            IDbContextTransaction startedTransaction = null;
             try
             {
-                if (connection.CurrentTransaction == null
-                    && (connection as ITransactionEnlistmentManager)?.EnlistedTransaction == null
-                    && Transaction.Current == null
-                    && CurrentContext.Context.Database.AutoTransactionsEnabled)
-                {
-                    startedTransaction = await connection.BeginTransactionAsync(cancellationToken);
-                }
-                else
-                {
-                    await connection.OpenAsync(cancellationToken);
-                }
-
+                await connection.OpenAsync(cancellationToken);
                 foreach (var batch in commandBatches)
                 {
                     await batch.ExecuteAsync(connection, cancellationToken);
                     rowsAffected += batch.ModificationCommands.Count;
                 }
-
-                startedTransaction?.Commit();
             }
             finally
             {
-                if (startedTransaction != null)
-                {
-                    startedTransaction.Dispose();
-                }
-                else
-                {
-                    connection.Close();
-                }
+                connection.Close();
             }
 
             return rowsAffected;
