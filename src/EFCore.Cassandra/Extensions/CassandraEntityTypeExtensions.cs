@@ -42,6 +42,17 @@ namespace Microsoft.EntityFrameworkCore
             return JsonConvert.DeserializeObject<IEnumerable<CassandraClusteringOrderByOption>>(result.Value.ToString());
         }
 
+        public static bool IsUserDefinedType(this IEntityType model)
+        {
+            var result = model.FindAnnotation(CassandraAnnotationNames.IsUserDefinedType);
+            if (result == null)
+            {
+                return false;
+            }
+
+            return (bool)result.Value;
+        }
+
         public static void SetClusterColumns(this IMutableEntityType entityType, IEnumerable<string> clusterColumns)
         {
             entityType.SetOrRemoveAnnotation(CassandraAnnotationNames.ClusterColumns, clusterColumns);
@@ -56,6 +67,11 @@ namespace Microsoft.EntityFrameworkCore
         {
             var json = JsonConvert.SerializeObject(options);
             entityType.SetOrRemoveAnnotation(CassandraAnnotationNames.ClusteringOrderByOptions, json);
+        }
+
+        public static void SetIsUserDefinedType(this IMutableEntityType entityType)
+        {
+            entityType.SetOrRemoveAnnotation(CassandraAnnotationNames.IsUserDefinedType, true);
         }
     }
 }

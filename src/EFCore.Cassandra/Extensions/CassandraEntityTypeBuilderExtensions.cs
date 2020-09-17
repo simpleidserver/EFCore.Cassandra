@@ -34,5 +34,13 @@ namespace Microsoft.EntityFrameworkCore
             entityTypeBuilder.Metadata.SetClusteringOrderByOptions(options);
             return entityTypeBuilder;
         }
+
+        public static EntityTypeBuilder ToUserDefinedType(this EntityTypeBuilder entityTypeBuilder, string name, string schema)
+        {
+            entityTypeBuilder.Metadata.SetTableName(name);
+            entityTypeBuilder.Metadata.SetSchema(schema);
+            entityTypeBuilder.Metadata.SetIsUserDefinedType();
+            return entityTypeBuilder;
+        }
     }
 }

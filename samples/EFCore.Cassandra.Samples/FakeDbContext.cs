@@ -38,6 +38,9 @@ namespace EFCore.Cassandra.Samples
             modelBuilder.Entity<CV>()
                 .ToTable("cvs", "cv")
                 .HasKey(c => c.Id);
+            modelBuilder.Entity<ApplicantAddress>()
+                .ToUserDefinedType("applicant_addr", "cv")
+                .HasNoKey();
         }
     }
 }

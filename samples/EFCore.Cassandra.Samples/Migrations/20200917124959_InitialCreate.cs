@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Numerics;
 using Cassandra;
+using EFCore.Cassandra.Samples.Models;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace EFCore.Cassandra.Samples.Migrations
@@ -40,7 +41,8 @@ namespace EFCore.Cassandra.Samples.Migrations
                     LocalTime = table.Column<LocalTime>(nullable: true),
                     Lst = table.Column<IEnumerable<string>>(nullable: true),
                     LstInt = table.Column<IEnumerable<int>>(nullable: true),
-                    Dic = table.Column<IDictionary<string, string>>(nullable: true)
+                    Dic = table.Column<IDictionary<string, string>>(nullable: true),
+                    Address = table.Column<ApplicantAddress>(type: "applicant_addr", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -60,6 +62,15 @@ namespace EFCore.Cassandra.Samples.Migrations
                 {
                     table.PrimaryKey("PK_cvs", x => x.Id);
                 });
+
+            migrationBuilder.CreateUserDefinedType(
+                name: "applicant_addr",
+                schema: "cv",
+                columns: table => new
+                {
+                    City = table.Column<string>(nullable: true),
+                    StreetNumber = table.Column<int>(nullable: false)
+                });
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -70,6 +81,10 @@ namespace EFCore.Cassandra.Samples.Migrations
 
             migrationBuilder.DropTable(
                 name: "cvs",
+                schema: "cv");
+
+            migrationBuilder.DropUserDefinedType(
+                name: "applicant_addr",
                 schema: "cv");
         }
     }

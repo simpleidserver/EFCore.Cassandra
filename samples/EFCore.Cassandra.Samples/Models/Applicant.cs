@@ -32,5 +32,6 @@ namespace EFCore.Cassandra.Samples.Models
         public IList<string> Lst { get; set; }
         public IList<int> LstInt { get; set; }
         public IDictionary<string, string> Dic { get; set; }
+        public ApplicantAddress Address { get; set; }
     }
 }

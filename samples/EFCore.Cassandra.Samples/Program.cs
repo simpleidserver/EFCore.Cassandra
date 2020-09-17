@@ -98,7 +98,12 @@ namespace EFCore.Cassandra.Samples
                 Blob = new byte[] { 1, 2 },
                 LocalDate = new LocalDate(2019, 10, 2),
                 Ip = IPAddress.Loopback,
-                LocalTime = new LocalTime(2, 3, 4, 5)
+                LocalTime = new LocalTime(2, 3, 4, 5),
+                Address = new ApplicantAddress
+                {
+                    City = "Brussels",
+                    StreetNumber = 100
+                }
             };
         }
     }

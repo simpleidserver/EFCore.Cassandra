@@ -99,6 +99,19 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.HasAnnotation("Cassandra:ClusteringOrderByOptions", "[{\"ColumnName\":\"Order\",\"Order\":0}]");
                 });
 
+            modelBuilder.Entity("EFCore.Cassandra.Samples.Models.ApplicantAddress", b =>
+                {
+                    b.Property<string>("City")
+                        .HasColumnType("text");
+
+                    b.Property<int>("StreetNumber")
+                        .HasColumnType("int");
+
+                    b.ToTable("applicant_addr","cv");
+
+                    b.HasAnnotation("Cassandra:IsUserDefinedType", true);
+                });
+
             modelBuilder.Entity("EFCore.Cassandra.Samples.Models.CV", b =>
                 {
                     b.Property<Guid>("Id")

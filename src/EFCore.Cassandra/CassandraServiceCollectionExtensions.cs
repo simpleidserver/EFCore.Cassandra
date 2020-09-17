@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore.Cassandra.Update.Internal;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
@@ -27,11 +28,13 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IDatabaseProvider, DatabaseProvider<CassandraOptionsExtension>>()
                 .TryAdd<IRelationalTypeMappingSource, CassandraTypeMappingSource>()
                 .TryAdd<LoggingDefinitions, CassandraLoggingDefinitions>()
+                .TryAdd<IMigrationsModelDiffer, CassandraMigrationsModelDiffer>()
                 // .TryAdd<IMemberTranslator, CassandraCompositeMemberTranslator>()
                 .TryAdd<IMigrator, CassandraMigrator>()
                 .TryAdd<ISqlGenerationHelper, CassandraSqlGenerationHelper>()
                 .TryAdd<IMigrationsSqlGenerator, CassandraMigrationsSqlGenerator>()
                 .TryAdd<IRelationalDatabaseCreator, CassandraDatabaseCreator>()
+                .TryAdd<IModelValidator, CassandraModelValidator>()
                 .TryAdd<IMigrationCommandExecutor, CassandraMigrationCommandExecutor>()
                 .TryAdd<IModificationCommandBatchFactory, CassandraModificationCommandBatchFactory>()
                 .TryAdd<IDatabaseCreator, CassandraDatabaseCreator>()

@@ -1,14 +1,13 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Microsoft.EntityFrameworkCore.Cassandra
+namespace System
 {
-    public static class SharedTypeExtensions
+    public static class CassandraSharedTypeExtensions
     {
         public static Expression UnwrapTypeConversion(this Expression expression, out Type convertedType)
         {
@@ -26,6 +25,9 @@ namespace Microsoft.EntityFrameworkCore.Cassandra
 
             return expression;
         }
+
+        public static bool IsValidEntityType(this Type type)
+            => type.GetTypeInfo().IsClass;
 
         public static Type UnwrapNullableType(this Type type) => Nullable.GetUnderlyingType(type) ?? type;
 
@@ -161,6 +163,25 @@ namespace Microsoft.EntityFrameworkCore.Cassandra
 
                 type = type.GetTypeInfo().BaseType;
             }
+        }
+
+        public static IEnumerable<PropertyInfo> GetPropertiesInHierarchy(this Type type, string name)
+        {
+            do
+            {
+                var typeInfo = type.GetTypeInfo();
+                foreach (var propertyInfo in typeInfo.DeclaredProperties)
+                {
+                    if (propertyInfo.Name.Equals(name, StringComparison.Ordinal)
+                        && !(propertyInfo.GetMethod ?? propertyInfo.SetMethod).IsStatic)
+                    {
+                        yield return propertyInfo;
+                    }
+                }
+
+                type = typeInfo.BaseType;
+            }
+            while (type != null);
         }
     }
 }
