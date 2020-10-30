@@ -208,3 +208,4 @@ FakesAssemblies/
 log-*.txt
 
 docs/_build/
+/benchmarks/EFCore.Cassandra.Benchmarks/BenchmarkDotNet.Artifacts/results
