@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30406.217
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01. Core Layer", "01. Core Layer", "{4920F8DE-E217-452A-865A-E47DAC924B5F}"
 EndProject
@@ -19,6 +19,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Cassandra.Tests", "tests\EFCore.Cassandra.Tests\EFCore.Cassandra.Tests.csproj", "{BE0A2541-1253-4917-A070-4BB8F71F4704}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Cassandra.Samples", "samples\EFCore.Cassandra.Samples\EFCore.Cassandra.Samples.csproj", "{84CB9B7A-BDCF-4AF6-8C02-80405EB54C93}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "04. Benchmarks", "04. Benchmarks", "{46930201-AD6E-448E-B8D7-95B26ABD9BB6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Cassandra.Benchmarks", "src\EFCore.Cassandra.Benchmarks\EFCore.Cassandra.Benchmarks.csproj", "{BBB1B39C-42FF-43AD-AF77-33B0018FD0E6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,6 +42,10 @@ Global
 		{84CB9B7A-BDCF-4AF6-8C02-80405EB54C93}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84CB9B7A-BDCF-4AF6-8C02-80405EB54C93}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84CB9B7A-BDCF-4AF6-8C02-80405EB54C93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBB1B39C-42FF-43AD-AF77-33B0018FD0E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBB1B39C-42FF-43AD-AF77-33B0018FD0E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBB1B39C-42FF-43AD-AF77-33B0018FD0E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBB1B39C-42FF-43AD-AF77-33B0018FD0E6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,6 +54,7 @@ Global
 		{2D74D363-66B9-424B-BB34-468BEF0A2F07} = {4920F8DE-E217-452A-865A-E47DAC924B5F}
 		{BE0A2541-1253-4917-A070-4BB8F71F4704} = {BCAC9560-F9EC-4C11-A0E2-D3CAC0759519}
 		{84CB9B7A-BDCF-4AF6-8C02-80405EB54C93} = {D43C01D1-8661-4A06-B3D8-5CD1A9AC1DB3}
+		{BBB1B39C-42FF-43AD-AF77-33B0018FD0E6} = {46930201-AD6E-448E-B8D7-95B26ABD9BB6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {13BDB38B-AFCC-4B2C-B0F9-404FB6249216}

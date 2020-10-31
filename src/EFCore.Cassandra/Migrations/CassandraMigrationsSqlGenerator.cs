@@ -285,17 +285,12 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         {
             public int Compare(MigrationOperation x, MigrationOperation y)
             {
-                if (x is CreateUserDefinedTypeOperation)
+                if (y is CreateUserDefinedTypeOperation || y is EnsureSchemaOperation)
                 {
-                    return -1;
+                    return 1;
                 }
 
-                if (y is CreateUserDefinedTypeOperation)
-                {
-                    return -1;
-                }
-
-                return 1;
+                return -1;
             }
         }
     }
