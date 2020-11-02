@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using Cassandra;
 using EFCore.Cassandra.Samples.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +19,10 @@ namespace EFCore.Cassandra.Samples
         {
             using (var dbContext = new FakeDbContext())
             {
+                Console.WriteLine("Bulk insert");
+                var applicants = Enumerable.Repeat(1, 1).Select(_ => BuildApplicant()).ToList();
+                dbContext.BulkInsert(applicants);
+
                 Console.WriteLine("Add applicant");
                 var timeUuid = TimeUuid.NewId();
                 dbContext.Applicants.Add(BuildApplicant());

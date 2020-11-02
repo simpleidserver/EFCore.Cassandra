@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using BenchmarkDotNet.Attributes;
 using EFCore.Cassandra.Benchmarks.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace EFCore.Cassandra.Benchmarks
         public InsertData()
         {
             _dbContext = new FakeDbContext();
-            _applicants = Enumerable.Range(1, 5).Select(_ => BuildApplicant()).ToArray();
+            _applicants = Enumerable.Range(1, 20).Select(_ => BuildApplicant()).ToArray();
         }
 
         public void Dispose()
@@ -25,7 +26,7 @@ namespace EFCore.Cassandra.Benchmarks
         }
 
         [Benchmark]
-        public void Add100Applicants()
+        public void AddApplicants()
         {
             foreach (var applicant in _applicants)
             {
@@ -36,10 +37,16 @@ namespace EFCore.Cassandra.Benchmarks
         }
 
         [Benchmark]
-        public void AddRange100Applicants()
+        public void AddRangeApplicants()
         {
             _dbContext.Applicants.AddRange(_applicants);
             _dbContext.SaveChanges();
+        }
+
+        [Benchmark]
+        public void BulkInsertApplicants()
+        {
+            _dbContext.BulkInsert(_applicants.ToList());
         }
 
         private static Applicant BuildApplicant()
