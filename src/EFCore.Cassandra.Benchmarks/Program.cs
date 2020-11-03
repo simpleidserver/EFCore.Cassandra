@@ -10,6 +10,7 @@ namespace EFCore.Cassandra.Benchmarks
         private static async Task Main(string[] args)
         {
             BenchmarkRunner.Run<InsertData>();
+            BenchmarkRunner.Run<BatchedInsertData>();
         }
     }
 }
