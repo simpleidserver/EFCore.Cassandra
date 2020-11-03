@@ -9,6 +9,7 @@ using System.Linq;
 
 namespace EFCore.Cassandra.Benchmarks
 {
+    [Config(typeof(CassandraBenchmarkConfig))]
     public class InsertData : IDisposable
     {
         private readonly FakeDbContext _dbContext;
