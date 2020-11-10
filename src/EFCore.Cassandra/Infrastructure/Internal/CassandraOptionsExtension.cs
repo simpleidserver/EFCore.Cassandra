@@ -2,25 +2,52 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.Text;
+using Cassandra;
+using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
 {
     public class CassandraOptionsExtension : RelationalOptionsExtension
     {
+        private Action<Builder> _callback;
+
         public CassandraOptionsExtension() { }
 
         protected CassandraOptionsExtension(CassandraOptionsExtension copyFrom) : base(copyFrom) { }
 
         public override DbContextOptionsExtensionInfo Info => new ExtensionInfo(this);
 
+        public virtual Action<Builder> ClusterBuilder => _callback;
+
         public override void ApplyServices(IServiceCollection services)
         {
             services.AddEntityFrameworkCassandra();
         }
 
-        protected override RelationalOptionsExtension Clone() => new CassandraOptionsExtension(this);
+        public CassandraOptionsExtension WithCallbackClusterBuilder(Action<Builder> callback)
+        {
+            var clone = (CassandraOptionsExtension)Clone();
+            clone._callback = callback;
+            return clone;
+        }
+
+
+        protected override RelationalOptionsExtension Clone() => new CassandraOptionsExtension(this)
+        {
+            _callback = _callback
+        };
+
+        public new static CassandraOptionsExtension Extract(IDbContextOptions options)
+        {
+            var relationalOptionsExtensions
+                = options.Extensions
+                    .OfType<CassandraOptionsExtension>()
+                    .ToList();
+            return relationalOptionsExtensions[0];
+        }
 
         private sealed class ExtensionInfo : RelationalExtensionInfo
         {

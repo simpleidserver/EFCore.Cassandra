@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+using Cassandra;
 using EFCore.Cassandra.Benchmarks.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Cassandra.Storage;
@@ -16,6 +17,21 @@ namespace EFCore.Cassandra.Benchmarks
             optionsBuilder.UseCassandra("Contact Points=127.0.0.1;", opt =>
             {
                 opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName, "cv");
+            }, o => {
+
+                o.WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
+                    .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000))
+                    .WithRetryPolicy(new DefaultRetryPolicy())
+                    .WithLoadBalancingPolicy(new TokenAwarePolicy(Policies.DefaultPolicies.LoadBalancingPolicy))
+                    .WithDefaultKeyspace(GetType().Name)
+                    .WithPoolingOptions(
+                    PoolingOptions.Create()
+                        .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Remote, 1_000_000)
+                        .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1_000_000)
+                        .SetMaxConnectionsPerHost(HostDistance.Local, 1_000_000)
+                        .SetMaxConnectionsPerHost(HostDistance.Remote, 1_000_000)
+                        .SetMaxRequestsPerConnection(1_000_000)
+                );
             });
         }
 

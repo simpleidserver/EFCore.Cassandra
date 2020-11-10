@@ -40,16 +40,12 @@ namespace EFCore.Cassandra.Benchmarks
             _applicants = Enumerable.Range(0, Iterations).Select(_ => BuildApplicants()).ToArray();
         }
 
-
         [Benchmark]
         public async Task BatchedInsertApplicantsAsync()
         {
-            var a = Enumerable.Range(0, Iterations)
-                .Select(i => _dbContext.BulkInsertAsync(_applicants[i].ToList()));
-
+            var a = Enumerable.Range(0, Iterations).Select(i => _dbContext.BulkInsertAsync(_applicants[i].ToList()));
             await Task.WhenAll(a);
         }
-
 
         private Applicant[] BuildApplicants()
         {
