@@ -9,14 +9,19 @@ namespace Microsoft.EntityFrameworkCore
 {
     public static class CassandraDbContextOptionsExtensions
     {
-        public static DbContextOptionsBuilder UseCassandra(this DbContextOptionsBuilder  optionsBuilder, string connectionString, Action<CassandraDbContextOptionsBuilder> cassandraOptionsAction = null)
+        public static DbContextOptionsBuilder UseCassandra(this DbContextOptionsBuilder  optionsBuilder, string connectionString, string defaultKeyspace, Action<CassandraDbContextOptionsBuilder> cassandraOptionsAction = null)
         {
-            return UseCassandra(optionsBuilder, connectionString, cassandraOptionsAction, null);
+            return UseCassandra(optionsBuilder, connectionString, defaultKeyspace, cassandraOptionsAction, null);
         }
 
-        public static DbContextOptionsBuilder UseCassandra(this DbContextOptionsBuilder optionsBuilder, string connectionString, Action<CassandraDbContextOptionsBuilder> cassandraOptionsAction = null, Action<Builder> clusterBuilderCallback = null)
+        public static DbContextOptionsBuilder UseCassandra(this DbContextOptionsBuilder optionsBuilder, string connectionString, string defaultKeyspace, Action<CassandraDbContextOptionsBuilder> cassandraOptionsAction = null, Action<Builder> clusterBuilderCallback = null)
         {
             var extension = (CassandraOptionsExtension)GetOrCreateExtension(optionsBuilder).WithConnectionString(connectionString);
+            if (!string.IsNullOrWhiteSpace(defaultKeyspace))
+            {
+                extension = extension.WithDefaultKeyspace(defaultKeyspace);
+            }
+
             if (clusterBuilderCallback != null)
             {
                 extension = extension.WithCallbackClusterBuilder(clusterBuilderCallback);

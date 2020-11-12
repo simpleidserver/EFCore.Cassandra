@@ -23,7 +23,7 @@ namespace EFCore.Cassandra.Tests
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseCassandra("connectionstring", _cassandraOptionsAction);
+            optionsBuilder.UseCassandra("connectionstring", "cv", _cassandraOptionsAction);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

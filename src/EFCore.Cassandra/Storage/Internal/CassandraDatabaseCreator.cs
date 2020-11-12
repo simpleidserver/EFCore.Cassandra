@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 
@@ -9,11 +10,13 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
     {
         private readonly IRelationalConnection _relationalConnection;
         private readonly IRawSqlCommandBuilder _rawSqlCommandBuilder;
+        private readonly RelationalConnectionDependencies _relationalConnectionDependencies;
 
-        public CassandraDatabaseCreator(IRelationalConnection relationalConnection, IRawSqlCommandBuilder rawCommandBuilder, RelationalDatabaseCreatorDependencies dependencies) : base(dependencies)
+        public CassandraDatabaseCreator(IRelationalConnection relationalConnection, IRawSqlCommandBuilder rawCommandBuilder, RelationalConnectionDependencies relationalConnectionDependencies, RelationalDatabaseCreatorDependencies dependencies) : base(dependencies)
         {
             _relationalConnection = relationalConnection;
             _rawSqlCommandBuilder = rawCommandBuilder;
+            _relationalConnectionDependencies = relationalConnectionDependencies;
         }
 
         public override void Create() { }
@@ -38,9 +41,9 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
 
         public override bool HasTables()
         {
-            var database = Dependencies.Connection.DbConnection.Database;
-            var sql = $"SELECT count(*) FROM system_schema.tables WHERE keyspace_name='{database}'";
-            return Dependencies.ExecutionStrategyFactory.Create().Execute(_relationalConnection, connection => (int)_rawSqlCommandBuilder.Build(sql).ExecuteScalar(
+            var optionsExtensions = CassandraOptionsExtension.Extract(_relationalConnectionDependencies.ContextOptions);
+            var sql = $"SELECT count(*) FROM system_schema.tables WHERE keyspace_name='{optionsExtensions.DefaultKeyspace}'";
+            return Dependencies.ExecutionStrategyFactory.Create().Execute(_relationalConnection, connection => (long)_rawSqlCommandBuilder.Build(sql).ExecuteScalar(
                 new RelationalCommandParameterObject(connection, null, null, null, null)
                 ) > 0);
         }

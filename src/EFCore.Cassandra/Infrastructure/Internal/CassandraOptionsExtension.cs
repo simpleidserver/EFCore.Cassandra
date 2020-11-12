@@ -13,6 +13,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
     public class CassandraOptionsExtension : RelationalOptionsExtension
     {
         private Action<Builder> _callback;
+        private string _defaultKeyspace;
 
         public CassandraOptionsExtension() { }
 
@@ -21,6 +22,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
         public override DbContextOptionsExtensionInfo Info => new ExtensionInfo(this);
 
         public virtual Action<Builder> ClusterBuilder => _callback;
+        public virtual string DefaultKeyspace => _defaultKeyspace;
 
         public override void ApplyServices(IServiceCollection services)
         {
@@ -34,10 +36,18 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
             return clone;
         }
 
+        public CassandraOptionsExtension WithDefaultKeyspace(string keyspace)
+        {
+            var clone = (CassandraOptionsExtension)Clone();
+            clone._defaultKeyspace = keyspace;
+            return clone;
+        }
+
 
         protected override RelationalOptionsExtension Clone() => new CassandraOptionsExtension(this)
         {
-            _callback = _callback
+            _callback = _callback,
+            _defaultKeyspace = _defaultKeyspace
         };
 
         public new static CassandraOptionsExtension Extract(IDbContextOptions options)

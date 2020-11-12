@@ -10,13 +10,14 @@ namespace EFCore.Cassandra.Samples
 {
     public class FakeDbContext : DbContext
     {
+        private const string CV_KEYSPACE = "cv";
         public DbSet<Applicant> Applicants { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseCassandra("Contact Points=127.0.0.1;", opt =>
+            optionsBuilder.UseCassandra($"Contact Points=127.0.0.1", CV_KEYSPACE, opt =>
             {
-                opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName, "cv");
+                opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName, CV_KEYSPACE);
             }, b =>
             {
                 b.WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
@@ -38,9 +39,9 @@ namespace EFCore.Cassandra.Samples
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             var timeUuidConverter = new TimeUuidToGuidConverter();
-            modelBuilder.ForCassandraAddKeyspace("cv", new KeyspaceReplicationSimpleStrategyClass(2));
+            modelBuilder.ForCassandraAddKeyspace(CV_KEYSPACE, new KeyspaceReplicationSimpleStrategyClass(2));
             modelBuilder.Entity<Applicant>()
-                .ToTable("applicants", "cv")
+                .ToTable("applicants", CV_KEYSPACE)
                 .HasKey(p => new { p.Id, p.Order });
             modelBuilder.Entity<Applicant>()
                 .ForCassandraSetClusterColumns(_ => _.Order)
@@ -52,10 +53,10 @@ namespace EFCore.Cassandra.Samples
                 .Property(p => p.Id)
                 .HasColumnName("id");
             modelBuilder.Entity<CV>()
-                .ToTable("cvs", "cv")
+                .ToTable("cvs", CV_KEYSPACE)
                 .HasKey(c => c.Id);
             modelBuilder.Entity<ApplicantAddress>()
-                .ToUserDefinedType("applicant_addr", "cv")
+                .ToUserDefinedType("applicant_addr", CV_KEYSPACE)
                 .HasNoKey();
         }
     }
