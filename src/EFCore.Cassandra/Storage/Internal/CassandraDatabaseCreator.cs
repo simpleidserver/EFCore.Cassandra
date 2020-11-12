@@ -43,9 +43,10 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
         {
             var optionsExtensions = CassandraOptionsExtension.Extract(_relationalConnectionDependencies.ContextOptions);
             var sql = $"SELECT count(*) FROM system_schema.tables WHERE keyspace_name='{optionsExtensions.DefaultKeyspace}'";
-            return Dependencies.ExecutionStrategyFactory.Create().Execute(_relationalConnection, connection => (long)_rawSqlCommandBuilder.Build(sql).ExecuteScalar(
+            var result = Dependencies.ExecutionStrategyFactory.Create().Execute(_relationalConnection, connection => (long)_rawSqlCommandBuilder.Build(sql).ExecuteScalar(
                 new RelationalCommandParameterObject(connection, null, null, null, null)
                 ) > 0);
+            return result;
         }
     }
 }

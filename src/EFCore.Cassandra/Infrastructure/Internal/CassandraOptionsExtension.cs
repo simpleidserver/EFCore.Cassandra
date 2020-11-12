@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using Cassandra;
 using System.Linq;
+using EFCore.Cassandra;
 
 namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
 {
@@ -27,6 +28,11 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
         public override void ApplyServices(IServiceCollection services)
         {
             services.AddEntityFrameworkCassandra();
+            services.Configure<CassandraOptions>((_) =>
+            {
+                _.ClusterBuilder = ClusterBuilder;
+                _.DefaultKeyspace = DefaultKeyspace;
+            });
         }
 
         public CassandraOptionsExtension WithCallbackClusterBuilder(Action<Builder> callback)

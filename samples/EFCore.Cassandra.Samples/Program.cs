@@ -2,11 +2,12 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using Cassandra;
 using EFCore.Cassandra.Samples.Models;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace EFCore.Cassandra.Samples
 {
@@ -15,7 +16,7 @@ namespace EFCore.Cassandra.Samples
         private static Guid ApplicantPartitionId = Guid.Parse("be2106c5-791f-45d2-890a-50fc221f96e8");
         private static Guid ApplicantId = Guid.Parse("09e0f68e-8818-452a-9a47-3c8ca2c941c8");
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             using (var dbContext = new FakeDbContext())
             {
@@ -25,7 +26,8 @@ namespace EFCore.Cassandra.Samples
 
                 Console.WriteLine("Add applicant");
                 var timeUuid = TimeUuid.NewId();
-                dbContext.Applicants.Add(BuildApplicant());
+                var app = BuildApplicant();
+                dbContext.Applicants.Add(app);
                 dbContext.SaveChanges();
                 Console.WriteLine("Applicant is added");
 

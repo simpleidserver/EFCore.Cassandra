@@ -77,6 +77,10 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
                     }
 
                     var targetType = FindCandidateNavigationPropertyType(actualProperty);
+                    if (targetType == null)
+                    {
+                        continue;
+                    }
 
                     var isTargetWeakOrOwned
                         = targetType != null

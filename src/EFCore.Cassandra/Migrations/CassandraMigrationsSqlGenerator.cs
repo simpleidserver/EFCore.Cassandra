@@ -59,11 +59,6 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         {
             var builder = new MigrationCommandListBuilder(Dependencies);
             var orderedOperations = operations.OrderBy(c => c, new MigrationOpComparer());
-            if (operations.Any(o => o is DropTableOperation))
-            {
-                orderedOperations = operations.OrderByDescending(c => c, new MigrationOpComparer());
-            }
-
             foreach (var operation in orderedOperations)
             {
                 Generate(operation, model, builder);
@@ -202,7 +197,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
 
         protected override void Generate(EnsureSchemaOperation operation, IModel model, MigrationCommandListBuilder builder)
         {
-            var keySpaceConfiguration = model.GetKeyspace(operation.Name);
+            var keySpaceConfiguration = model.GetKeyspaceConfiguration();
             if (keySpaceConfiguration == null)
             {
                 keySpaceConfiguration = new KeyspaceReplicationSimpleStrategyClass(2);
@@ -285,6 +280,11 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         {
             public int Compare(MigrationOperation x, MigrationOperation y)
             {
+                if (x is EnsureSchemaOperation)
+                {
+                    return -1;
+                }
+
                 if (y is CreateUserDefinedTypeOperation || y is EnsureSchemaOperation)
                 {
                     return 1;

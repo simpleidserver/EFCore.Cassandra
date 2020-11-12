@@ -1,5 +1,7 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+using EFCore.Cassandra;
+using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Cassandra.Query.Internal;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
@@ -17,6 +19,7 @@ namespace Microsoft.EntityFrameworkCore.Query
     {
         private static readonly Regex _composableSql
             = new Regex(@"^\s*?SELECT\b", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(value: 1000.0));
+        private readonly CassandraOptions _opts;
         private readonly ISqlGenerationHelper _sqlGenerationHelper;
 
         private static readonly Dictionary<ExpressionType, string> _operatorMap = new Dictionary<ExpressionType, string>
@@ -42,8 +45,9 @@ namespace Microsoft.EntityFrameworkCore.Query
         ///     Creates a new instance of the <see cref="QuerySqlGenerator" /> class.
         /// </summary>
         /// <param name="dependencies"> Parameter object containing dependencies for this class. </param>
-        public CassandraQuerySqlGenerator(QuerySqlGeneratorDependencies dependencies) : base(dependencies)
+        public CassandraQuerySqlGenerator(CassandraOptions opts, QuerySqlGeneratorDependencies dependencies) : base(dependencies)
         {
+            _opts = opts;
             _sqlGenerationHelper = dependencies.SqlGenerationHelper;
         }
 
@@ -198,8 +202,9 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         protected override Expression VisitTable(TableExpression tableExpression)
         {
+            var schema = _opts.DefaultKeyspace;
             Sql
-                .Append(_sqlGenerationHelper.DelimitIdentifier(tableExpression.Name, tableExpression.Schema));
+                .Append(_sqlGenerationHelper.DelimitIdentifier(tableExpression.Name, schema));
                 // .Append(AliasSeparator)
                 // .Append(_sqlGenerationHelper.DelimitIdentifier(tableExpression.Alias));
 

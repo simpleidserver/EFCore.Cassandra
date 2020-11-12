@@ -8,9 +8,9 @@ namespace Microsoft.EntityFrameworkCore
 {
     public static class CassandraModelExtensions
     {
-        public static KeyspaceReplicationConfiguration GetKeyspace(this IModel model, string name)
+        public static KeyspaceReplicationConfiguration GetKeyspaceConfiguration(this IModel model)
         {
-            var annotation = model.FindAnnotation($"{CassandraAnnotationNames.Keyspace}{name}");
+            var annotation = model.FindAnnotation(CassandraAnnotationNames.KeyspaceConfiguration);
             if (annotation == null)
             {
                 return null;
@@ -27,9 +27,9 @@ namespace Microsoft.EntityFrameworkCore
             }
         }
 
-        public static void SetKeyspace(this IMutableModel model, string name, KeyspaceReplicationConfiguration keyspaceReplicationConfiguration)
+        public static void SetKeyspaceConfiguration(this IMutableModel model, KeyspaceReplicationConfiguration keyspaceReplicationConfiguration)
         {
-            model.SetOrRemoveAnnotation($"{CassandraAnnotationNames.Keyspace}{name}", JsonConvert.SerializeObject(keyspaceReplicationConfiguration));
+            model.SetOrRemoveAnnotation(CassandraAnnotationNames.KeyspaceConfiguration, JsonConvert.SerializeObject(keyspaceReplicationConfiguration));
         }
     }
 }

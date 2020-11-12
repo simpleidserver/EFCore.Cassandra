@@ -17,6 +17,7 @@ using Microsoft.EntityFrameworkCore.Migrations.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
+using Microsoft.EntityFrameworkCore.Update.Internal;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -29,6 +30,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IRelationalTypeMappingSource, CassandraTypeMappingSource>()
                 .TryAdd<LoggingDefinitions, CassandraLoggingDefinitions>()
                 .TryAdd<IMigrationsModelDiffer, CassandraMigrationsModelDiffer>()
+                .TryAdd<ICommandBatchPreparer, CassandraCommandBatchPreparer>()
                 // .TryAdd<IMemberTranslator, CassandraCompositeMemberTranslator>()
                 .TryAdd<IMigrator, CassandraMigrator>()
                 .TryAdd<ISqlGenerationHelper, CassandraSqlGenerationHelper>()
@@ -52,6 +54,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAddProviderSpecificServices(b => b.TryAddTransient<ICassandraHistoryRepository, CassandraHistoryRepository>());
             
             builder.TryAddCoreServices();
+            serviceCollection.AddSingleton<IServiceCollection>(serviceCollection);
             return serviceCollection;
         }
     }

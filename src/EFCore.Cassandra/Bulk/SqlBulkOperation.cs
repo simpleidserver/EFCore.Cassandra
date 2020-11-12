@@ -3,6 +3,7 @@
 using Cassandra;
 using Cassandra.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -34,6 +35,8 @@ namespace EFCore.Cassandra.Bulk
         {
             var service = dbContext.GetService<ICommandBatchPreparer>();
             var sqlGenerationHelper = dbContext.GetService<ISqlGenerationHelper>();
+            var relationalConnectionDependencies = dbContext.GetService<RelationalConnectionDependencies>();
+            var cassandraOptionsExtension = CassandraOptionsExtension.Extract(relationalConnectionDependencies.ContextOptions);
             var database = dbContext.Database.GetDbConnection() as CqlConnection;
             if (database.State != ConnectionState.Open)
             {
@@ -58,7 +61,7 @@ namespace EFCore.Cassandra.Bulk
                 }
 
                 var tableName = entityType.GetTableName();
-                var schema = entityType.GetSchema();
+                var schema = cassandraOptionsExtension.DefaultKeyspace;
                 var cqlQuery = $"INSERT INTO \"{schema}\".\"{tableName}\" ({string.Join(',', propertyNames)}) VALUES ({string.Join(',', Enumerable.Repeat(1, propertyNames.Count()).Select(_ => "?"))})";
                 var smt = session.Prepare(cqlQuery);
                 batch.Add(smt.Bind(propertyValues.ToArray()));

@@ -5,10 +5,10 @@ namespace Microsoft.EntityFrameworkCore
 {
     public static class CassandraModelBuilderExtensions
     {
-        public static ModelBuilder ForCassandraAddKeyspace(this ModelBuilder modelBuilder, string keyspaceName, KeyspaceReplicationConfiguration configuration)
+        public static ModelBuilder EnsureKeyspaceCreated(this ModelBuilder modelBuilder, KeyspaceReplicationConfiguration configuration)
         {
             var model = modelBuilder.Model;
-            model.SetKeyspace(keyspaceName, configuration);
+            model.SetKeyspaceConfiguration(configuration);
             return modelBuilder;
         }
     }

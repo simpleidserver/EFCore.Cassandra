@@ -8,13 +8,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace EFCore.Cassandra.Samples.Migrations
 {
-    public partial class InitialCreate : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.EnsureSchema(
-                name: "cv");
-
             migrationBuilder.CreateTable(
                 name: "applicants",
                 schema: "cv",
@@ -39,28 +36,12 @@ namespace EFCore.Cassandra.Samples.Migrations
                     LocalDate = table.Column<LocalDate>(nullable: true),
                     Ip = table.Column<IPAddress>(nullable: true),
                     LocalTime = table.Column<LocalTime>(nullable: true),
-                    Lst = table.Column<IEnumerable<string>>(nullable: true),
-                    LstInt = table.Column<IEnumerable<int>>(nullable: true),
                     Dic = table.Column<IDictionary<string, string>>(nullable: true),
                     Address = table.Column<ApplicantAddress>(type: "applicant_addr", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_applicants", x => new { x.id, x.Order });
-                });
-
-            migrationBuilder.CreateTable(
-                name: "cvs",
-                schema: "cv",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(nullable: false),
-                    CvId = table.Column<Guid>(nullable: false),
-                    Name = table.Column<string>(nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_cvs", x => x.Id);
                 });
 
             migrationBuilder.CreateUserDefinedType(
@@ -77,10 +58,6 @@ namespace EFCore.Cassandra.Samples.Migrations
         {
             migrationBuilder.DropTable(
                 name: "applicants",
-                schema: "cv");
-
-            migrationBuilder.DropTable(
-                name: "cvs",
                 schema: "cv");
 
             migrationBuilder.DropUserDefinedType(

@@ -10,6 +10,6 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Metadata.Internal
         public const string StaticColumns = Prefix + "StaticColumns";
         public const string ClusteringOrderByOptions = Prefix + "ClusteringOrderByOptions";
         public const string IsUserDefinedType = Prefix + "IsUserDefinedType";
-        public const string Keyspace = Prefix + "Keyspace";
+        public const string KeyspaceConfiguration = Prefix + "KeyspaceConfiguration";
     }
 }

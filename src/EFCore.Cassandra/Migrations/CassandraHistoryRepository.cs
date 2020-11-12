@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -22,12 +23,13 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations
         private string _migrationIdColumnName;
         private string _productVersionColumnName;
 
-        public CassandraHistoryRepository(HistoryRepositoryDependencies dependencies)
+        public CassandraHistoryRepository(RelationalConnectionDependencies relationalConnectionDependencies, HistoryRepositoryDependencies dependencies)
         {
+            var cassandraOptionsExtension = CassandraOptionsExtension.Extract(relationalConnectionDependencies.ContextOptions);
             Dependencies = dependencies;
             var relationalOptions = RelationalOptionsExtension.Extract(dependencies.Options);
             TableName = relationalOptions?.MigrationsHistoryTableName ?? DefaultTableName;
-            TableSchema = relationalOptions?.MigrationsHistoryTableSchema;
+            TableSchema = cassandraOptionsExtension.DefaultKeyspace;
             EnsureModel();
         }
 

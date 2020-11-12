@@ -104,7 +104,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
                 return mapping;
             }
 
-            if ((clrType.IsGenericType && ((clrType.GetGenericTypeDefinition() == typeof(List<>))  || (clrType.GetGenericTypeDefinition() == typeof(IList<>)))) || clrType.IsArray)
+            if ((clrType.IsGenericType && (clrType.GetGenericTypeDefinition() == typeof(IEnumerable<>) || typeof(IEnumerable<>).IsAssignableFrom(clrType))) || clrType.IsArray)
             {
                 Type genericType;
                 if (clrType.IsGenericType)
@@ -118,7 +118,8 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
 
                 var listTypeMappingType = typeof(CassandraListTypeMapping<>).MakeGenericType(genericType);
                 var genericTypeName = _clrTypeMappings[genericType].StoreType;
-                return (RelationalTypeMapping)Activator.CreateInstance(listTypeMappingType, $"{ListTypeName}<{genericTypeName}>", null);
+                var result = (RelationalTypeMapping)Activator.CreateInstance(listTypeMappingType, $"{ListTypeName}<{genericTypeName}>", null);
+                return result;
             }
 
             if ((clrType.IsGenericType && ((clrType.GetGenericTypeDefinition() == typeof(Dictionary<,>)) || (clrType.GetGenericTypeDefinition() == typeof(IDictionary<,>)))))

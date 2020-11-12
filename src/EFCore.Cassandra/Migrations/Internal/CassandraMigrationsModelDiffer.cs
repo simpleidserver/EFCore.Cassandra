@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
+﻿using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -13,28 +14,64 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Xml.Schema;
 
 namespace Microsoft.EntityFrameworkCore.Migrations.Internal
 {
     public class CassandraMigrationsModelDiffer : MigrationsModelDiffer
     {
-        public CassandraMigrationsModelDiffer(IRelationalTypeMappingSource typeMappingSource, IMigrationsAnnotationProvider migrationsAnnotations, IChangeDetector changeDetector, IUpdateAdapterFactory updateAdapterFactory, CommandBatchPreparerDependencies commandBatchPreparerDependencies) : base(typeMappingSource, migrationsAnnotations, changeDetector, updateAdapterFactory, commandBatchPreparerDependencies)
+        private readonly CassandraOptionsExtension _cassandraOptionsExtension;
+
+        public CassandraMigrationsModelDiffer(RelationalConnectionDependencies relationalConnectionDependencies, IRelationalTypeMappingSource typeMappingSource, IMigrationsAnnotationProvider migrationsAnnotations, IChangeDetector changeDetector, IUpdateAdapterFactory updateAdapterFactory, CommandBatchPreparerDependencies commandBatchPreparerDependencies) : base(typeMappingSource, migrationsAnnotations, changeDetector, updateAdapterFactory, commandBatchPreparerDependencies)
         {
+            _cassandraOptionsExtension = CassandraOptionsExtension.Extract(relationalConnectionDependencies.ContextOptions);
+        }
+
+        protected override IEnumerable<MigrationOperation> Diff(IModel source, IModel target, DiffContext diffContext)
+        {
+            TrackData(source, target);
+
+            var result = new List<MigrationOperation>
+            {
+                new EnsureSchemaOperation
+                {
+                    Name = _cassandraOptionsExtension.DefaultKeyspace
+                }
+            };
+            var schemaOperations = source != null && target != null
+                ? DiffAnnotations(source, target)
+                    .Concat(Diff(GetSchemas(source), GetSchemas(target), diffContext))
+                    .Concat(Diff(diffContext.GetSourceTables(), diffContext.GetTargetTables(), diffContext))
+                    .Concat(Diff(source.GetSequences(), target.GetSequences(), diffContext))
+                    .Concat(
+                        Diff(
+                            diffContext.GetSourceTables().SelectMany(s => s.GetForeignKeys()),
+                            diffContext.GetTargetTables().SelectMany(t => t.GetForeignKeys()),
+                            diffContext))
+                : target != null
+                    ? Add(target, diffContext)
+                    : source != null
+                        ? Remove(source, diffContext)
+                        : Enumerable.Empty<MigrationOperation>();
+            schemaOperations = schemaOperations.Concat(GetDataOperations(diffContext));
+            result.AddRange(schemaOperations);
+            return result;
         }
 
         protected override IEnumerable<MigrationOperation> Remove(TableMapping source, DiffContext diffContext)
         {
+            var schema = _cassandraOptionsExtension.DefaultKeyspace;
             var type = source.GetRootType();
             MigrationOperation operation;
             if (!type.IsUserDefinedType())
             {
-                var dropOperation = new DropTableOperation { Schema = source.Schema, Name = source.Name };
+                var dropOperation = new DropTableOperation { Schema = schema, Name = source.Name };
                 diffContext.AddDrop(source, dropOperation);
                 operation = dropOperation;
             }
             else
             {
-                operation = new DropUserDefinedTypeOperation { Schema = source.Schema, Name = source.Name };
+                operation = new DropUserDefinedTypeOperation { Schema = schema, Name = source.Name };
             }
 
             operation.AddAnnotations(MigrationsAnnotations.ForRemove(source.EntityTypes[0]));
@@ -44,6 +81,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
 
         protected override IEnumerable<MigrationOperation> Add(TableMapping target, DiffContext diffContext)
         {
+            var schema = _cassandraOptionsExtension.DefaultKeyspace;
             var result = new List<MigrationOperation>();
             var type = target.GetRootType();
             if (!type.IsUserDefinedType())
@@ -51,7 +89,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
                 var entityType = target.EntityTypes[0];
                 var createTableOperation = new CreateTableOperation
                 {
-                    Schema = target.Schema,
+                    Schema = schema,
                     Name = target.Name,
                     Comment = target.GetComment()
                 };
@@ -86,7 +124,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
 
             var createUserDefinedOperation = new CreateUserDefinedTypeOperation
             {
-                Schema = target.Schema,
+                Schema = schema,
                 Name = target.Name,
             };
             createUserDefinedOperation.Columns.AddRange(type.GetProperties().SelectMany(p => Add(p, diffContext, inline: true)).Cast<AddColumnOperation>());
@@ -101,6 +139,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
 
         protected override IEnumerable<MigrationOperation> Add(IProperty target, DiffContext diffContext, bool inline = false)
         {
+            var schema = _cassandraOptionsExtension.DefaultKeyspace;
             var targetEntityType = target.DeclaringEntityType.GetRootType();
             var et = targetEntityType.Model.FindEntityType(target.ClrType);
             Type clrType;
@@ -118,7 +157,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
 
             var operation = new AddColumnOperation
             {
-                Schema = targetEntityType.GetSchema(),
+                Schema = schema,
                 Table = targetEntityType.GetTableName(),
                 Name = target.GetColumnName()
             };
@@ -171,13 +210,55 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
                 : value;
         }
 
+        private IEnumerable<MigrationOperation> DiffAnnotations(
+            IModel source,
+            IModel target)
+        {
+            var sourceMigrationsAnnotations = source == null ? null : MigrationsAnnotations.For(source).ToList();
+            var targetMigrationsAnnotations = target == null ? null : MigrationsAnnotations.For(target).ToList();
+
+            if (source == null)
+            {
+                if (targetMigrationsAnnotations?.Count > 0)
+                {
+                    var alterDatabaseOperation = new AlterDatabaseOperation();
+                    alterDatabaseOperation.AddAnnotations(targetMigrationsAnnotations);
+                    yield return alterDatabaseOperation;
+                }
+
+                yield break;
+            }
+
+            if (target == null)
+            {
+                sourceMigrationsAnnotations = MigrationsAnnotations.ForRemove(source).ToList();
+                if (sourceMigrationsAnnotations.Count > 0)
+                {
+                    var alterDatabaseOperation = new AlterDatabaseOperation();
+                    alterDatabaseOperation.OldDatabase.AddAnnotations(MigrationsAnnotations.ForRemove(source));
+                    yield return alterDatabaseOperation;
+                }
+
+                yield break;
+            }
+
+            if (HasDifferences(sourceMigrationsAnnotations, targetMigrationsAnnotations))
+            {
+                var alterDatabaseOperation = new AlterDatabaseOperation();
+                alterDatabaseOperation.AddAnnotations(targetMigrationsAnnotations);
+                alterDatabaseOperation.OldDatabase.AddAnnotations(sourceMigrationsAnnotations);
+                yield return alterDatabaseOperation;
+            }
+        }
+
         private ValueConverter GetValueConverter(IProperty property) => TypeMappingSource.GetMapping(property).Converter;
 
-        private static IEnumerable<IProperty> GetSortedProperties(TableMapping target)
+        private IEnumerable<IProperty> GetSortedProperties(TableMapping target)
             => GetSortedProperties(target.GetRootType()).Distinct((x, y) => x.GetColumnName() == y.GetColumnName());
 
-        private static IEnumerable<IProperty> GetSortedProperties(IEntityType entityType)
+        private IEnumerable<IProperty> GetSortedProperties(IEntityType entityType)
         {
+            var schema = _cassandraOptionsExtension.DefaultKeyspace;
             var shadowProperties = new List<IProperty>();
             var shadowPrimaryKeyProperties = new List<IProperty>();
             var primaryKeyPropertyGroups = new Dictionary<PropertyInfo, IProperty>();
@@ -249,7 +330,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
                 .Where(
                     fk => fk.DeclaringEntityType.GetRootType() != entityType.GetRootType()
                         && fk.DeclaringEntityType.GetTableName() == entityType.GetTableName()
-                        && fk.DeclaringEntityType.GetSchema() == entityType.GetSchema()
+                        && fk.DeclaringEntityType.GetSchema() == schema
                         && fk
                         == fk.DeclaringEntityType
                             .FindForeignKey(

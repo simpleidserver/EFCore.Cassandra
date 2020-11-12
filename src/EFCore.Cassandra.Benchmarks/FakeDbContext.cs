@@ -17,7 +17,7 @@ namespace EFCore.Cassandra.Benchmarks
         {
             optionsBuilder.UseCassandra("Contact Points=127.0.0.1;", CV_KEYSPACE, opt =>
             {
-                opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName, CV_KEYSPACE);
+                opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName);
             }, o => {
 
                 o.WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
@@ -39,9 +39,9 @@ namespace EFCore.Cassandra.Benchmarks
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             var timeUuidConverter = new TimeUuidToGuidConverter();
-            modelBuilder.ForCassandraAddKeyspace("CV_KEYSPACE", new KeyspaceReplicationSimpleStrategyClass(2));
+            modelBuilder.EnsureKeyspaceCreated(new KeyspaceReplicationSimpleStrategyClass(2));
             modelBuilder.Entity<Applicant>()
-                .ToTable("applicants", CV_KEYSPACE)
+                .ToTable("applicants")
                 .HasKey(p => new { p.Id, p.Order });
             modelBuilder.Entity<Applicant>()
                 .ForCassandraSetClusterColumns(_ => _.Order)
@@ -53,7 +53,7 @@ namespace EFCore.Cassandra.Benchmarks
                 .Property(p => p.Id)
                 .HasColumnName("id");
             modelBuilder.Entity<ApplicantAddress>()
-                .ToUserDefinedType("applicant_addr", CV_KEYSPACE)
+                .ToUserDefinedType("applicant_addr")
                 .HasNoKey();
         }
     }

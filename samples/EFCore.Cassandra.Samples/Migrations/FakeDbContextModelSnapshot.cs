@@ -18,7 +18,7 @@ namespace EFCore.Cassandra.Samples.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Cassandra:Keyspacecv", "{\"ReplicationFactor\":2,\"ReplicationClass\":0}")
+                .HasAnnotation("Cassandra:KeyspaceConfiguration", "{\"ReplicationFactor\":2,\"ReplicationClass\":0}")
                 .HasAnnotation("ProductVersion", "3.1.4");
 
             modelBuilder.Entity("EFCore.Cassandra.Samples.Models.Applicant", b =>
@@ -75,12 +75,6 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.Property<long>("Long")
                         .HasColumnType("bigint");
 
-                    b.Property<IList<string>>("Lst")
-                        .HasColumnType("list<text>");
-
-                    b.Property<IList<int>>("LstInt")
-                        .HasColumnType("list<int>");
-
                     b.Property<sbyte>("Sbyte")
                         .HasColumnType("tinyint");
 
@@ -92,7 +86,7 @@ namespace EFCore.Cassandra.Samples.Migrations
 
                     b.HasKey("Id", "Order");
 
-                    b.ToTable("applicants","cv");
+                    b.ToTable("applicants");
 
                     b.HasAnnotation("Cassandra:ClusterColumns", new[] { "Order" });
 
@@ -107,26 +101,9 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.Property<int>("StreetNumber")
                         .HasColumnType("int");
 
-                    b.ToTable("applicant_addr","cv");
+                    b.ToTable("applicant_addr");
 
                     b.HasAnnotation("Cassandra:IsUserDefinedType", true);
-                });
-
-            modelBuilder.Entity("EFCore.Cassandra.Samples.Models.CV", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CvId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("cvs","cv");
                 });
 #pragma warning restore 612, 618
         }

@@ -10,17 +10,16 @@ namespace EFCore.Cassandra.Samples
 {
     public class FakeDbContext : DbContext
     {
-        private const string CV_KEYSPACE = "cv";
         public DbSet<Applicant> Applicants { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseCassandra($"Contact Points=127.0.0.1", CV_KEYSPACE, opt =>
+            optionsBuilder.UseCassandra("Contact Points=127.0.0.1;", "cv", opt =>
             {
-                opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName, CV_KEYSPACE);
-            }, b =>
-            {
-                b.WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
+                opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName);
+            }, o => {
+
+                o.WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
                     .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000))
                     .WithRetryPolicy(new DefaultRetryPolicy())
                     .WithLoadBalancingPolicy(new TokenAwarePolicy(Policies.DefaultPolicies.LoadBalancingPolicy))
@@ -39,9 +38,9 @@ namespace EFCore.Cassandra.Samples
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             var timeUuidConverter = new TimeUuidToGuidConverter();
-            modelBuilder.ForCassandraAddKeyspace(CV_KEYSPACE, new KeyspaceReplicationSimpleStrategyClass(2));
+            modelBuilder.EnsureKeyspaceCreated(new KeyspaceReplicationSimpleStrategyClass(2));
             modelBuilder.Entity<Applicant>()
-                .ToTable("applicants", CV_KEYSPACE)
+                .ToTable("applicants")
                 .HasKey(p => new { p.Id, p.Order });
             modelBuilder.Entity<Applicant>()
                 .ForCassandraSetClusterColumns(_ => _.Order)
@@ -52,11 +51,8 @@ namespace EFCore.Cassandra.Samples
             modelBuilder.Entity<Applicant>()
                 .Property(p => p.Id)
                 .HasColumnName("id");
-            modelBuilder.Entity<CV>()
-                .ToTable("cvs", CV_KEYSPACE)
-                .HasKey(c => c.Id);
             modelBuilder.Entity<ApplicantAddress>()
-                .ToUserDefinedType("applicant_addr", CV_KEYSPACE)
+                .ToUserDefinedType("applicant_addr")
                 .HasNoKey();
         }
     }
