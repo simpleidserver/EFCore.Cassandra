@@ -5,6 +5,7 @@ using System.Net;
 using System.Numerics;
 using Cassandra;
 using EFCore.Cassandra.Samples;
+using EFCore.Cassandra.Samples.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -75,6 +76,9 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.Property<long>("Long")
                         .HasColumnType("bigint");
 
+                    b.Property<ApplicantPhone[]>("Phones")
+                        .HasColumnType("list<ApplicantPhone>");
+
                     b.Property<sbyte>("Sbyte")
                         .HasColumnType("tinyint");
 
@@ -102,6 +106,19 @@ namespace EFCore.Cassandra.Samples.Migrations
                         .HasColumnType("int");
 
                     b.ToTable("applicant_addr");
+
+                    b.HasAnnotation("Cassandra:IsUserDefinedType", true);
+                });
+
+            modelBuilder.Entity("EFCore.Cassandra.Samples.Models.ApplicantPhone", b =>
+                {
+                    b.Property<bool>("IsMobile")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text");
+
+                    b.ToTable("applicant_phone");
 
                     b.HasAnnotation("Cassandra:IsUserDefinedType", true);
                 });

@@ -12,6 +12,9 @@ namespace EFCore.Cassandra.Samples.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "cv");
+
             migrationBuilder.CreateTable(
                 name: "applicants",
                 schema: "cv",
@@ -37,6 +40,7 @@ namespace EFCore.Cassandra.Samples.Migrations
                     Ip = table.Column<IPAddress>(nullable: true),
                     LocalTime = table.Column<LocalTime>(nullable: true),
                     Dic = table.Column<IDictionary<string, string>>(nullable: true),
+                    Phones = table.Column<IEnumerable<ApplicantPhone>>(nullable: true),
                     Address = table.Column<ApplicantAddress>(type: "applicant_addr", nullable: true)
                 },
                 constraints: table =>
@@ -52,6 +56,15 @@ namespace EFCore.Cassandra.Samples.Migrations
                     City = table.Column<string>(nullable: true),
                     StreetNumber = table.Column<int>(nullable: false)
                 });
+
+            migrationBuilder.CreateUserDefinedType(
+                name: "applicant_phone",
+                schema: "cv",
+                columns: table => new
+                {
+                    IsMobile = table.Column<bool>(nullable: false),
+                    PhoneNumber = table.Column<string>(nullable: true)
+                });
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -60,8 +73,15 @@ namespace EFCore.Cassandra.Samples.Migrations
                 name: "applicants",
                 schema: "cv");
 
+            migrationBuilder.EnsureSchema(
+                name: "cv");
+
             migrationBuilder.DropUserDefinedType(
                 name: "applicant_addr",
+                schema: "cv");
+
+            migrationBuilder.DropUserDefinedType(
+                name: "applicant_phone",
                 schema: "cv");
         }
     }

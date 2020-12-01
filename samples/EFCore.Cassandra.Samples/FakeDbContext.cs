@@ -54,6 +54,9 @@ namespace EFCore.Cassandra.Samples
             modelBuilder.Entity<ApplicantAddress>()
                 .ToUserDefinedType("applicant_addr")
                 .HasNoKey();
+            modelBuilder.Entity<ApplicantPhone>()
+                .ToUserDefinedType("applicant_phone")
+                .HasNoKey();
         }
     }
 }

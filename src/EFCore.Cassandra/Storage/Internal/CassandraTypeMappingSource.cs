@@ -104,7 +104,11 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
                 return mapping;
             }
 
-            if ((clrType.IsGenericType && (clrType.GetGenericTypeDefinition() == typeof(IEnumerable<>) || typeof(IEnumerable<>).IsAssignableFrom(clrType))) || clrType.IsArray)
+            if ((clrType.IsGenericType && 
+                (
+                    clrType.GetGenericTypeDefinition() == typeof(IEnumerable<>) || 
+                    typeof(IEnumerable<>).IsAssignableFrom(clrType)
+            )) || clrType.IsArray)
             {
                 Type genericType;
                 if (clrType.IsGenericType)
@@ -117,7 +121,12 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
                 }
 
                 var listTypeMappingType = typeof(CassandraListTypeMapping<>).MakeGenericType(genericType);
-                var genericTypeName = _clrTypeMappings[genericType].StoreType;
+                string genericTypeName = genericType.Name;
+                if (_clrTypeMappings.ContainsKey(genericType))
+                {
+                    genericTypeName = _clrTypeMappings[genericType].StoreType;
+                }
+
                 var result = (RelationalTypeMapping)Activator.CreateInstance(listTypeMappingType, $"{ListTypeName}<{genericTypeName}>", null);
                 return result;
             }
@@ -130,9 +139,6 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
                     var genericTypes = clrType.GenericTypeArguments;
                     firstGenericType = genericTypes.First();
                     secondGenericType = genericTypes.Last();
-                }
-                else
-                {
                 }
 
                 var listTypeMappingType = typeof(CassandraDicTypeMapping<,>).MakeGenericType(firstGenericType, secondGenericType);

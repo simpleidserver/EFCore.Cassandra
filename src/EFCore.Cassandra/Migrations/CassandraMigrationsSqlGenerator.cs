@@ -264,6 +264,17 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             {
                 columnType = $"FROZEN<{columnType}>";
             }
+            else if (operation.ClrType.IsGenericType && operation.ClrType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            {
+                var arg = operation.ClrType.GenericTypeArguments.First();
+                ut = model.FindEntityType(arg);
+                isUserDefinedType = ut != null && ut.IsUserDefinedType();
+                if (isUserDefinedType)
+                {
+                    var tn = ut.GetTableName();
+                    columnType = $"list<FROZEN<{tn}>>";
+                }
+            }
 
             var entityType = model.GetEntityTypes().First(s => s.GetTableName() == table);
             builder

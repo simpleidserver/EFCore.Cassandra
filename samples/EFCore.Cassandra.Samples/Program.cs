@@ -110,7 +110,15 @@ namespace EFCore.Cassandra.Samples
                 {
                     City = "Brussels",
                     StreetNumber = 100
-                }
+                },
+                 Phones = new ApplicantPhone[]
+                 {
+                     new ApplicantPhone
+                     {
+                         IsMobile = true,
+                         PhoneNumber = "phone"
+                     }
+                 }
             };
         }
     }
