@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
@@ -19,17 +20,21 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations
     public class CassandraHistoryRepository : ICassandraHistoryRepository
     {
         public const string DefaultTableName = "__EFMigrationsHistory";
+        private readonly InternalAnnotatableBuilder<Model> _builder;
         private IModel _model;
         private string _migrationIdColumnName;
         private string _productVersionColumnName;
 
-        public CassandraHistoryRepository(RelationalConnectionDependencies relationalConnectionDependencies, HistoryRepositoryDependencies dependencies)
+        public CassandraHistoryRepository(
+            RelationalConnectionDependencies relationalConnectionDependencies,
+            HistoryRepositoryDependencies dependencies)
         {
             var cassandraOptionsExtension = CassandraOptionsExtension.Extract(relationalConnectionDependencies.ContextOptions);
             Dependencies = dependencies;
             var relationalOptions = RelationalOptionsExtension.Extract(dependencies.Options);
             TableName = relationalOptions?.MigrationsHistoryTableName ?? DefaultTableName;
             TableSchema = cassandraOptionsExtension.DefaultKeyspace;
+            _builder = ((Model)relationalConnectionDependencies.CurrentContext.Context.Model).Builder;
             EnsureModel();
         }
 
@@ -63,6 +68,11 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations
                         ConfigureTable(x);
                         x.ToTable(TableName, TableSchema);
                     });
+                var model = modelBuilder.Model;
+                foreach(var annotation in _builder.Metadata.GetAnnotations())
+                {
+                    model[annotation.Name] = annotation.Value;
+                }
 
                 _model = modelBuilder.FinalizeModel();
             }

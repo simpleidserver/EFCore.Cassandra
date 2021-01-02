@@ -3,6 +3,7 @@
 using Microsoft.EntityFrameworkCore.Cassandra.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Microsoft.EntityFrameworkCore
 {
@@ -29,7 +30,7 @@ namespace Microsoft.EntityFrameworkCore
 
         public static void SetKeyspaceConfiguration(this IMutableModel model, KeyspaceReplicationConfiguration keyspaceReplicationConfiguration)
         {
-            model.SetOrRemoveAnnotation(CassandraAnnotationNames.KeyspaceConfiguration, JsonConvert.SerializeObject(keyspaceReplicationConfiguration));
+            model[CassandraAnnotationNames.KeyspaceConfiguration] = JsonConvert.SerializeObject(keyspaceReplicationConfiguration);
         }
     }
 }
