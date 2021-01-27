@@ -68,6 +68,8 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations
                         ConfigureTable(x);
                         x.ToTable(TableName, TableSchema);
                     });
+                modelBuilder.Entity<CassandraHistoryRow>()
+                    .HasKey(x => x.MigrationId);
                 var model = modelBuilder.Model;
                 foreach(var annotation in _builder.Metadata.GetAnnotations())
                 {

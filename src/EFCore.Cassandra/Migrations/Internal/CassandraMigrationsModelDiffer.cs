@@ -11,10 +11,8 @@ using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Update.Internal;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Xml.Schema;
 
 namespace Microsoft.EntityFrameworkCore.Migrations.Internal
 {
@@ -27,10 +25,17 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
             _cassandraOptionsExtension = CassandraOptionsExtension.Extract(relationalConnectionDependencies.ContextOptions);
         }
 
+        public override IReadOnlyList<MigrationOperation> GetDifferences(IModel source, IModel target)
+        {
+            source = CleanModel(source);
+            target = CleanModel(target);
+            var diffContext = new DiffContext(source, target);
+            return Sort(Diff(source, target, diffContext), diffContext);
+        }
+
         protected override IEnumerable<MigrationOperation> Diff(IModel source, IModel target, DiffContext diffContext)
         {
             TrackData(source, target);
-
             var result = new List<MigrationOperation>
             {
                 new EnsureSchemaOperation
@@ -38,16 +43,11 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
                     Name = _cassandraOptionsExtension.DefaultKeyspace
                 }
             };
+
             var schemaOperations = source != null && target != null
                 ? DiffAnnotations(source, target)
                     .Concat(Diff(GetSchemas(source), GetSchemas(target), diffContext))
                     .Concat(Diff(diffContext.GetSourceTables(), diffContext.GetTargetTables(), diffContext))
-                    .Concat(Diff(source.GetSequences(), target.GetSequences(), diffContext))
-                    .Concat(
-                        Diff(
-                            diffContext.GetSourceTables().SelectMany(s => s.GetForeignKeys()),
-                            diffContext.GetTargetTables().SelectMany(t => t.GetForeignKeys()),
-                            diffContext))
                 : target != null
                     ? Add(target, diffContext)
                     : source != null
@@ -55,6 +55,80 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
                         : Enumerable.Empty<MigrationOperation>();
             schemaOperations = schemaOperations.Concat(GetDataOperations(diffContext));
             result.AddRange(schemaOperations);
+            return result;
+        }
+
+        public static bool CheckProperty(Assembly[] assms, IProperty property)
+        {
+            var type = assms.Select(a => a.GetType(property.DeclaringType.Name)).FirstOrDefault(t => t != null);
+            if (type == null)
+            {
+                return false;
+            }
+
+            if (!type.GetProperties().Any(p => p.Name == property.Name))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static IModel CleanModel(IModel model)
+        {
+            if (model == null)
+            {
+                return null;
+            }
+
+            var result = new Model();
+            foreach(var annotation in model.GetAnnotations())
+            {
+                result.AddAnnotation(annotation.Name, annotation.Value);
+            }
+
+            var assms = AppDomain.CurrentDomain.GetAssemblies();
+            var entityTypes = model.GetEntityTypes().Cast<EntityType>();
+            foreach (var entityType in entityTypes)
+            {
+                var newEntityType = entityType.ClrType != null ? result.AddEntityType(entityType.ClrType, ConfigurationSource.Explicit) : result.AddEntityType(entityType.Name, ConfigurationSource.Explicit);
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (!CheckProperty(assms, property))
+                    {
+                        continue;
+                    }
+
+                    var prop = newEntityType.AddProperty(property.Name, property.ClrType, ConfigurationSource.Explicit, ConfigurationSource.Explicit);
+                    prop.SetColumnName(property.GetColumnName());
+                    prop.SetColumnType(property.GetColumnType());
+                }
+
+                foreach (var annotation in entityType.GetAnnotations())
+                {
+                    newEntityType.AddAnnotation(annotation.Name, annotation.Value);
+                }
+
+                foreach (var kvp in entityType.GetKeys())
+                {
+                    var properties = kvp.Properties.Select(_ => newEntityType.FindProperty(_.Name)).ToList();
+                    foreach(var prop in properties)
+                    {
+                        prop.IsNullable = false;
+                    }
+
+                    var key = newEntityType.AddKey(properties, ConfigurationSource.Explicit);
+                    key.SetName(kvp.GetName());
+                }
+
+                var primaryKey = entityType.FindPrimaryKey();
+                if (primaryKey != null)
+                {
+                    var properties = primaryKey.Properties.Select(_ => newEntityType.FindProperty(_.Name)).ToList();
+                    newEntityType.SetPrimaryKey(properties, ConfigurationSource.Convention);
+                }
+            }
+
             return result;
         }
 
@@ -146,8 +220,11 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
             IEntityType userDefinedType = null;
             if (et == null || !et.IsUserDefinedType())
             {
-                var typeMapping = TypeMappingSource.GetMapping(target);
-                clrType = typeMapping.Converter?.ProviderClrType ?? (typeMapping.ClrType).UnwrapNullableType();
+                // Debugger.Launch();
+                // var principals = target.FindPrincipals();
+                // var typeMapping = TypeMappingSource.GetMapping(target);
+                // clrType = typeMapping.Converter?.ProviderClrType ?? (typeMapping.ClrType).UnwrapNullableType();
+                clrType = target.ClrType;
             }
             else
             {
@@ -162,11 +239,9 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
                 Name = target.GetColumnName()
             };
 
-
             Initialize(
                 operation, target, clrType, target.IsColumnNullable(),
                 MigrationsAnnotations.For(target), inline, userDefinedType);
-
             yield return operation;
         }
 
@@ -204,10 +279,13 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
         private object GetDefaultValue(IProperty property)
         {
             var value = property.GetDefaultValue();
+            return value;
+            /*
             var converter = GetValueConverter(property);
             return converter != null
                 ? converter.ConvertToProvider(value)
                 : value;
+            */
         }
 
         private IEnumerable<MigrationOperation> DiffAnnotations(
@@ -266,6 +344,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
             var unorderedGroups = new Dictionary<PropertyInfo, SortedDictionary<int, IProperty>>();
             var types = new Dictionary<Type, SortedDictionary<int, PropertyInfo>>();
             var model = entityType.Model;
+            //  Debugger.Launch();
             var declaredProperties = entityType.GetDeclaredProperties().ToList();
             declaredProperties.AddRange(entityType.ClrType.GetProperties().Where(p =>
             {

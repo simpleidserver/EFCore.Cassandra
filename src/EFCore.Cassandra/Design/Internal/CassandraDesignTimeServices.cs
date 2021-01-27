@@ -13,6 +13,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Design.Internal
         public void ConfigureDesignTimeServices(IServiceCollection serviceCollection)
         {
             serviceCollection.AddSingleton<ICSharpMigrationOperationGenerator, CSharpCassandraMigrationOperationGenerator>();
+            serviceCollection.AddSingleton<ICSharpSnapshotGenerator, CSharpCassandraSnapshotGenerator>();
             serviceCollection.AddSingleton<IRelationalTypeMappingSource, CassandraTypeMappingSource>();
         }
     }

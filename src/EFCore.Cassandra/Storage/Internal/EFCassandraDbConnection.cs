@@ -6,7 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Migrations.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -58,6 +60,7 @@ namespace EFCore.Cassandra.Storage.Internal
                 return null;
             }
 
+            var assms = AppDomain.CurrentDomain.GetAssemblies();
             var session = cluster.Connect(keyspace ?? string.Empty);
             var context = _currentDbContext.Context;
             var entityTypes = context.Model.GetEntityTypes();
@@ -74,11 +77,18 @@ namespace EFCore.Cassandra.Storage.Internal
                     var props = properties.GetValue(entityType) as SortedDictionary<string, Property>;
                     foreach (var prop in props)
                     {
+                        if (!CassandraMigrationsModelDiffer.CheckProperty(assms, prop.Value))
+                        {
+                            continue;
+                        }
+
                         var mapMethod = genericUdtMap.GetMethod("Map").MakeGenericMethod(prop.Value.ClrType);
                         var variable = Expression.Variable(arg, "v");
                         var p = Expression.Property(variable, prop.Key);
                         var lambda = Expression.Lambda(p, variable);
-                        map = mapMethod.Invoke(map, new object[] { lambda, prop.Value.Name });
+                        var colName = prop.Value.GetColumnName();
+                        colName = string.IsNullOrWhiteSpace(colName) ? prop.Value.Name : colName;
+                        map = mapMethod.Invoke(map, new object[] { lambda, colName });
                     }
 
                     try
