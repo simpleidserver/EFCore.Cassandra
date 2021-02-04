@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
+﻿using EFCore.Cassandra.Extensions;
+using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
+using Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal;
 using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Internal;
@@ -11,6 +13,7 @@ using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Update.Internal;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -220,10 +223,6 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
             IEntityType userDefinedType = null;
             if (et == null || !et.IsUserDefinedType())
             {
-                // Debugger.Launch();
-                // var principals = target.FindPrincipals();
-                // var typeMapping = TypeMappingSource.GetMapping(target);
-                // clrType = typeMapping.Converter?.ProviderClrType ?? (typeMapping.ClrType).UnwrapNullableType();
                 clrType = target.ClrType;
             }
             else
@@ -254,8 +253,29 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
             bool inline = false,
             IEntityType userDefinedType = null)
         {
+            var columnType = userDefinedType != null ? userDefinedType.GetTableName() : property.GetConfiguredColumnType();
+            if (property.ClrType.IsList() && !CassandraTypeMappingSource.CLR_TYPE_MAPPINGS.ContainsKey(property.ClrType))
+            {
+                Type genericType;
+                if (clrType.IsGenericType)
+                {
+                    genericType = clrType.GenericTypeArguments.First();
+                }
+                else
+                {
+                    genericType = clrType.GetElementType();
+                }
+
+                if (!CassandraTypeMappingSource.CLR_TYPE_MAPPINGS.ContainsKey(genericType))
+                {
+                    var targetEntityType = property.DeclaringEntityType.GetRootType();
+                    var et = targetEntityType.Model.FindEntityType(genericType);
+                    columnType = columnType.Replace(genericType.Name, et.GetTableName());
+                }
+            }
+
             columnOperation.ClrType = clrType;
-            columnOperation.ColumnType = userDefinedType != null ? userDefinedType.GetTableName() : property.GetConfiguredColumnType();
+            columnOperation.ColumnType = columnType;
             columnOperation.MaxLength = property.GetMaxLength();
             columnOperation.IsUnicode = property.IsUnicode();
             columnOperation.IsFixedLength = property.IsFixedLength();
@@ -280,12 +300,6 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
         {
             var value = property.GetDefaultValue();
             return value;
-            /*
-            var converter = GetValueConverter(property);
-            return converter != null
-                ? converter.ConvertToProvider(value)
-                : value;
-            */
         }
 
         private IEnumerable<MigrationOperation> DiffAnnotations(

@@ -20,6 +20,7 @@ namespace EFCore.Cassandra.Samples
         {
             using (var dbContext = new FakeDbContext())
             {
+                dbContext.Database.Migrate();
                 Console.WriteLine("Bulk insert");
                 var applicants = Enumerable.Repeat(1, 1).Select(_ => BuildApplicant()).ToList();
                 dbContext.BulkInsert(applicants);

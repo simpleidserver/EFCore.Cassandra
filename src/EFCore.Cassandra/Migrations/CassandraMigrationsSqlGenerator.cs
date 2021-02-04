@@ -255,27 +255,16 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             builder.Append(")");
         }
 
+        // protected override string GetColumnType(string schema, string table, string name, ColumnOperation operation, IModel model)
+        // {
+        //     return base.GetColumnType(schema, table, name, operation, model);
+        // }
+
         protected override void ColumnDefinition(string schema, string table, string name, ColumnOperation operation, IModel model, MigrationCommandListBuilder builder)
         {
             var ut = model.FindEntityType(operation.ClrType);
             var isUserDefinedType = ut != null && ut.IsUserDefinedType();
             var columnType = operation.ColumnType ?? GetColumnType(schema, table, name, operation, model);
-            if(isUserDefinedType)
-            {
-                columnType = $"FROZEN<{columnType}>";
-            }
-            else if (operation.ClrType.IsGenericType && operation.ClrType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-            {
-                var arg = operation.ClrType.GenericTypeArguments.First();
-                ut = model.FindEntityType(arg);
-                isUserDefinedType = ut != null && ut.IsUserDefinedType();
-                if (isUserDefinedType)
-                {
-                    var tn = ut.GetTableName();
-                    columnType = $"list<FROZEN<{tn}>>";
-                }
-            }
-
             var entityType = model.GetEntityTypes().First(s => s.GetTableName() == table);
             builder
                 .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(name))

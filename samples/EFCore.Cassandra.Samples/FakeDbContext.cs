@@ -43,6 +43,10 @@ namespace EFCore.Cassandra.Samples
                 .ToTable("applicants")
                 .HasKey(p => new { p.Id, p.Order });
             modelBuilder.Entity<Applicant>()
+                .ToTable("applicants")
+                .Property(p => p.Phones)
+                .HasColumnType("set<frozen<applicant_addr>>");
+            modelBuilder.Entity<Applicant>()
                 .ForCassandraSetClusterColumns(_ => _.Order)
                 .ForCassandraSetClusteringOrderBy(new[] { new CassandraClusteringOrderByOption("Order", CassandraClusteringOrderByOptions.ASC) });
             modelBuilder.Entity<Applicant>()

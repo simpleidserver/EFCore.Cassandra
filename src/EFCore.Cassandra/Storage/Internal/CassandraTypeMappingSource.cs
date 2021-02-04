@@ -1,8 +1,11 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using Cassandra;
+using EFCore.Cassandra.Extensions;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -14,6 +17,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
 {
     public class CassandraTypeMappingSource : RelationalTypeMappingSource
     {
+        private readonly ConcurrentDictionary<(RelationalTypeMappingInfo, Type, ValueConverter), RelationalTypeMapping> _explicitMappings = new ConcurrentDictionary<(RelationalTypeMappingInfo, Type, ValueConverter), RelationalTypeMapping>();
         private const string IntegerTypeName = "int";
         private const string TextTypeName = "text";
         private const string LongTypeName = "bigint";
@@ -52,7 +56,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
         private static readonly CassandraTypeMapping<BigInteger> _bigInteger = new CassandraTypeMapping<BigInteger>(BigIntegerTypeName, default(BigInteger));
         private static readonly GuidTypeMapping _guid = new GuidTypeMapping(GuidTypeName);
 
-        private readonly Dictionary<Type, RelationalTypeMapping> _clrTypeMappings = new Dictionary<Type, RelationalTypeMapping>
+        public static Dictionary<Type, RelationalTypeMapping> CLR_TYPE_MAPPINGS = new Dictionary<Type, RelationalTypeMapping>
         {
             { typeof(string), _text },
             { typeof(int), _integer },
@@ -99,17 +103,12 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
         protected override RelationalTypeMapping FindMapping(in RelationalTypeMappingInfo mappingInfo)
         {
             var clrType = mappingInfo.ClrType;
-            if (clrType != null && _clrTypeMappings.TryGetValue(clrType, out var mapping))
+            if (clrType != null && CLR_TYPE_MAPPINGS.TryGetValue(clrType, out var mapping))
             {
                 return mapping;
             }
 
-            if ((clrType.IsGenericType && 
-                (
-                    clrType.GetGenericTypeDefinition() == typeof(IEnumerable<>) || 
-                    typeof(IEnumerable<>).IsAssignableFrom(clrType) ||
-                    clrType.GetGenericTypeDefinition() == typeof(IList<>)
-            )) || clrType.IsArray)
+            if (clrType.IsList())
             {
                 Type genericType;
                 if (clrType.IsGenericType)
@@ -123,9 +122,13 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
 
                 var listTypeMappingType = typeof(CassandraListTypeMapping<>).MakeGenericType(genericType);
                 string genericTypeName = genericType.Name;
-                if (_clrTypeMappings.ContainsKey(genericType))
+                if (CLR_TYPE_MAPPINGS.ContainsKey(genericType))
                 {
-                    genericTypeName = _clrTypeMappings[genericType].StoreType;
+                    genericTypeName = CLR_TYPE_MAPPINGS[genericType].StoreType;
+                }
+                else
+                {
+                    genericTypeName = $"frozen<{genericTypeName}>";
                 }
 
                 var result = (RelationalTypeMapping)Activator.CreateInstance(listTypeMappingType, $"{ListTypeName}<{genericTypeName}>", null);
@@ -143,8 +146,8 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
                 }
 
                 var listTypeMappingType = typeof(CassandraDicTypeMapping<,>).MakeGenericType(firstGenericType, secondGenericType);
-                var firstGenericTypeName = _clrTypeMappings[firstGenericType].StoreType;
-                var secondGenericTypeName = _clrTypeMappings[secondGenericType].StoreType;
+                var firstGenericTypeName = CLR_TYPE_MAPPINGS[firstGenericType].StoreType;
+                var secondGenericTypeName = CLR_TYPE_MAPPINGS[secondGenericType].StoreType;
                 return (RelationalTypeMapping)Activator.CreateInstance(listTypeMappingType, $"{DictionaryTypeName}<{firstGenericTypeName},{secondGenericTypeName}>", null);
             }
 

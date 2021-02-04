@@ -14,7 +14,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EFCore.Cassandra.Samples.Migrations
 {
     [DbContext(typeof(FakeDbContext))]
-    [Migration("20201201113939_Init")]
+    [Migration("20210204112756_Init")]
     partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -78,8 +78,14 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.Property<long>("Long")
                         .HasColumnType("bigint");
 
+                    b.Property<IList<string>>("Lst")
+                        .HasColumnType("list<text>");
+
+                    b.Property<IList<int>>("LstInt")
+                        .HasColumnType("list<int>");
+
                     b.Property<ApplicantPhone[]>("Phones")
-                        .HasColumnType("list<ApplicantPhone>");
+                        .HasColumnType("set<frozen<applicant_addr>>");
 
                     b.Property<sbyte>("Sbyte")
                         .HasColumnType("tinyint");
