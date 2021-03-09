@@ -188,12 +188,6 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal
             name => Contains(name, "ascii") || Contains(name, "text") || Contains(name, "varchar") ? _text : null
         };
 
-        private static bool IsGenericList(Type type)
-        {
-            var intt = type.GetInterfaces();
-            return type.GetInterfaces().Any(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IList<>));
-        }
-
         private static bool Contains(string haystack, string needle) => haystack.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }

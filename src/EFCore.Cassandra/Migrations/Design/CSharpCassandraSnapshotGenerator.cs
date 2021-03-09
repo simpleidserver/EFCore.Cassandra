@@ -1,10 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.EntityFrameworkCore.Internal;
+﻿// Copyright (c) SimpleIdServer. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Migrations.Internal;
 using System;
-using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Migrations.Design
 {
@@ -69,7 +69,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Design
                 using (stringBuilder.Indent())
                 {
                     GenerateBaseType(builderName, entityType.BaseType, stringBuilder);
-                    GenerateProperties(builderName, entityType.GetDeclaredProperties().Where(p => CassandraMigrationsModelDiffer.CheckProperty(assms, p)), stringBuilder);
+                    GenerateProperties(builderName, entityType.GetDeclaredProperties(), stringBuilder);
                     GenerateKeys(builderName, entityType.GetDeclaredKeys(), entityType.FindDeclaredPrimaryKey(), stringBuilder);
                     GenerateEntityTypeAnnotations(builderName, entityType, stringBuilder);
                     GenerateCheckConstraints(builderName, entityType, stringBuilder);

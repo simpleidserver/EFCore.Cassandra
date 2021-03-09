@@ -14,7 +14,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EFCore.Cassandra.Samples.Migrations
 {
     [DbContext(typeof(FakeDbContext))]
-    [Migration("20210204112756_Init")]
+    [Migration("20210309153748_Init")]
     partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -22,12 +22,11 @@ namespace EFCore.Cassandra.Samples.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Cassandra:KeyspaceConfiguration", "{\"ReplicationFactor\":2,\"ReplicationClass\":0}")
-                .HasAnnotation("ProductVersion", "3.1.4");
+                .HasAnnotation("ProductVersion", "5.0.3");
 
             modelBuilder.Entity("EFCore.Cassandra.Samples.Models.Applicant", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnName("id")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Order")
@@ -85,7 +84,7 @@ namespace EFCore.Cassandra.Samples.Migrations
                         .HasColumnType("list<int>");
 
                     b.Property<ApplicantPhone[]>("Phones")
-                        .HasColumnType("set<frozen<applicant_addr>>");
+                        .HasColumnType("list<frozen<ApplicantPhone>>");
 
                     b.Property<sbyte>("Sbyte")
                         .HasColumnType("tinyint");
@@ -98,11 +97,11 @@ namespace EFCore.Cassandra.Samples.Migrations
 
                     b.HasKey("Id", "Order");
 
-                    b.ToTable("applicants");
+                    b.ToTable("applicants", "cv");
 
-                    b.HasAnnotation("Cassandra:ClusterColumns", new[] { "Order" });
-
-                    b.HasAnnotation("Cassandra:ClusteringOrderByOptions", "[{\"ColumnName\":\"Order\",\"Order\":0}]");
+                    b
+                        .HasAnnotation("Cassandra:ClusterColumns", new[] { "Order" })
+                        .HasAnnotation("Cassandra:ClusteringOrderByOptions", "[{\"ColumnName\":\"Order\",\"Order\":0}]");
                 });
 
             modelBuilder.Entity("EFCore.Cassandra.Samples.Models.ApplicantAddress", b =>
@@ -113,9 +112,10 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.Property<int>("StreetNumber")
                         .HasColumnType("int");
 
-                    b.ToTable("applicant_addr");
+                    b.ToTable("applicant_addr", "cv");
 
-                    b.HasAnnotation("Cassandra:IsUserDefinedType", true);
+                    b
+                        .HasAnnotation("Cassandra:IsUserDefinedType", true);
                 });
 
             modelBuilder.Entity("EFCore.Cassandra.Samples.Models.ApplicantPhone", b =>
@@ -126,9 +126,10 @@ namespace EFCore.Cassandra.Samples.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
 
-                    b.ToTable("applicant_phone");
+                    b.ToTable("applicant_phone", "cv");
 
-                    b.HasAnnotation("Cassandra:IsUserDefinedType", true);
+                    b
+                        .HasAnnotation("Cassandra:IsUserDefinedType", true);
                 });
 #pragma warning restore 612, 618
         }

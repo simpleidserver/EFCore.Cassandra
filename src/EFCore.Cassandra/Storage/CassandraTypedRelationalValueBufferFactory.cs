@@ -174,8 +174,9 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage
             var expectedType = typeof(TValue);
             var actualType = value?.GetType();
 
-            string message;
+            string message = "";
 
+            /*
             if (property != null)
             {
                 var entityType = property.DeclaringType.DisplayName();
@@ -198,6 +199,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Storage
                             ? CoreStrings.ErrorMaterializingValueInvalidCast(expectedType, actualType)
                             : CoreStrings.ErrorMaterializingValue;
             }
+            */
 
             throw new InvalidOperationException(message, exception);
         }

@@ -1,18 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+﻿// Copyright (c) SimpleIdServer. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Microsoft.EntityFrameworkCore.Storage;
-using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore.Cassandra.Query.Internal
 {
-    public class CassandraProjectionBindingExpressionVisitor : ExpressionVisitor
+    public class CassandraProjectionBindingExpressionVisitor : RelationalSqlTranslatingExpressionVisitor
     {
         private readonly CassandraQueryableMethodTranslatingExpressionVisitor _queryableMethodTranslatingExpressionVisitor;
         private readonly RelationalSqlTranslatingExpressionVisitor _sqlTranslator;
@@ -26,20 +22,25 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Query.Internal
         private readonly Stack<ProjectionMember> _projectionMembers = new Stack<ProjectionMember>();
 
         public CassandraProjectionBindingExpressionVisitor(
-            CassandraQueryableMethodTranslatingExpressionVisitor queryableMethodTranslatingExpressionVisitor,
-            RelationalSqlTranslatingExpressionVisitor sqlTranslatingExpressionVisitor)
+            [NotNull] RelationalSqlTranslatingExpressionVisitorDependencies dependencies,
+            [NotNull] QueryCompilationContext queryCompilationContext,
+            [NotNull] QueryableMethodTranslatingExpressionVisitor queryableMethodTranslatingExpressionVisitor)
+            : base(dependencies, queryCompilationContext, queryableMethodTranslatingExpressionVisitor)
         {
-            _queryableMethodTranslatingExpressionVisitor = queryableMethodTranslatingExpressionVisitor;
-            _sqlTranslator = sqlTranslatingExpressionVisitor;
         }
 
+        public override Expression Visit(Expression node)
+        {
+            return base.Visit(node);
+        }
+
+        /*
         public virtual Expression Translate(SelectExpression selectExpression, Expression expression)
         {
             _selectExpression = selectExpression;
             _clientEval = false;
 
             _projectionMembers.Push(new ProjectionMember());
-
             var expandedExpression = _queryableMethodTranslatingExpressionVisitor.ExpandWeakEntities(_selectExpression, expression);
             var result = Visit(expandedExpression);
 
@@ -58,7 +59,8 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Query.Internal
             _projectionMembers.Clear();
             _projectionMapping.Clear();
 
-            return result;
+            // return result;
+            return null;
         }
 
         public override Expression Visit(Expression expression)
@@ -320,5 +322,6 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Query.Internal
                 throw new InvalidOperationException(CoreStrings.QueryFailed(projectionBindingExpression.Print(), GetType().Name));
             }
         }
+        */
     }
 }

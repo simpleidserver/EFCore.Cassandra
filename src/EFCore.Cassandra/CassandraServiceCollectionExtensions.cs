@@ -12,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Cassandra.Update.Internal;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Internal;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Update.Internal;
@@ -31,6 +33,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<LoggingDefinitions, CassandraLoggingDefinitions>()
                 .TryAdd<IMigrationsModelDiffer, CassandraMigrationsModelDiffer>()
                 .TryAdd<ICommandBatchPreparer, CassandraCommandBatchPreparer>()
+                .TryAdd<IProviderConventionSetBuilder, CassandraConventionSetBuilder>()
                 // .TryAdd<IMemberTranslator, CassandraCompositeMemberTranslator>()
                 .TryAdd<IMigrator, CassandraMigrator>()
                 .TryAdd<ISqlGenerationHelper, CassandraSqlGenerationHelper>()
@@ -49,6 +52,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .TryAdd<IRelationalSqlTranslatingExpressionVisitorFactory, CassandraSqlTranslatingExpressionVisitorFactory>()
                 .TryAdd<IQuerySqlGeneratorFactory, CassandraSqlGeneratorFactory>()
                 .TryAdd<IUpdateSqlGenerator, CassandraUpdateSqlGenerator>()
+                .TryAdd<IRelationalParameterBasedSqlProcessorFactory, CassandraRelationalParameterBasedSqlProcessorFactory>()
                 .TryAdd<IQueryableMethodTranslatingExpressionVisitorFactory, CassandraQueryableMethodTranslatingExpressionVisitorFactory>()
                 .TryAddProviderSpecificServices(b => b.TryAddScoped<ICassandraRelationalConnection, CassandraRelationalConnection>())
                 .TryAddProviderSpecificServices(b => b.TryAddTransient<ICassandraHistoryRepository, CassandraHistoryRepository>());

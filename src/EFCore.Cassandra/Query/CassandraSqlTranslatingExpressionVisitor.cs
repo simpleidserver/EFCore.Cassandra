@@ -11,7 +11,11 @@ namespace EFCore.Cassandra.Query
     {
         private readonly RelationalSqlTranslatingExpressionVisitorDependencies _dependencies;
 
-        public CassandraSqlTranslatingExpressionVisitor(RelationalSqlTranslatingExpressionVisitorDependencies dependencies, IModel model, QueryableMethodTranslatingExpressionVisitor queryableMethodTranslatingExpressionVisitor) : base(dependencies, model, queryableMethodTranslatingExpressionVisitor)
+        public CassandraSqlTranslatingExpressionVisitor(
+            RelationalSqlTranslatingExpressionVisitorDependencies dependencies, 
+            QueryCompilationContext queryCompilationContext, 
+            IModel model, 
+            QueryableMethodTranslatingExpressionVisitor queryableMethodTranslatingExpressionVisitor) : base(dependencies, queryCompilationContext, queryableMethodTranslatingExpressionVisitor)
         {
             _dependencies = dependencies;
         }
@@ -21,7 +25,7 @@ namespace EFCore.Cassandra.Query
             return base.Translate(expression);
         }
 
-        public override SqlExpression TranslateLongCount(Expression expression = null)
+        public override SqlExpression TranslateLongCount(SqlExpression expression = null)
         {
             return base.TranslateLongCount(expression);
         }

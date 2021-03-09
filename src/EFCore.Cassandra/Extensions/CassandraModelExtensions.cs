@@ -3,7 +3,6 @@
 using Microsoft.EntityFrameworkCore.Cassandra.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Newtonsoft.Json;
-using System.Diagnostics;
 
 namespace Microsoft.EntityFrameworkCore
 {

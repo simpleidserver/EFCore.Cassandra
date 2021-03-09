@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Migrations.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Concurrent;
@@ -77,10 +76,12 @@ namespace EFCore.Cassandra.Storage.Internal
                     var props = properties.GetValue(entityType) as SortedDictionary<string, Property>;
                     foreach (var prop in props)
                     {
+                        /*
                         if (!CassandraMigrationsModelDiffer.CheckProperty(assms, prop.Value))
                         {
                             continue;
                         }
+                        */
 
                         var mapMethod = genericUdtMap.GetMethod("Map").MakeGenericMethod(prop.Value.ClrType);
                         var variable = Expression.Variable(arg, "v");

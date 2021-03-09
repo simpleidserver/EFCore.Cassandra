@@ -2,13 +2,15 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -26,6 +28,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
         private readonly IMigrationCommandExecutor _migrationCommandExecutor;
         private readonly IRelationalConnection _connection;
         private readonly ISqlGenerationHelper _sqlGenerationHelper;
+        private readonly IConventionSetBuilder _conventionSetBuilder;
         private readonly IDiagnosticsLogger<DbLoggerCategory.Migrations> _logger;
         private readonly IDiagnosticsLogger<DbLoggerCategory.Database.Command> _commandLogger;
         private readonly ICurrentDbContext _currentContext;
@@ -41,6 +44,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
             IRelationalConnection connection,
             ISqlGenerationHelper sqlGenerationHelper,
             ICurrentDbContext currentContext,
+            IConventionSetBuilder conventionSetBuilder,
             IDiagnosticsLogger<DbLoggerCategory.Migrations> logger,
             IDiagnosticsLogger<DbLoggerCategory.Database.Command> commandLogger,
             IDatabaseProvider databaseProvider)
@@ -54,6 +58,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
             _connection = connection;
             _sqlGenerationHelper = sqlGenerationHelper;
             _currentContext = currentContext;
+            _conventionSetBuilder = conventionSetBuilder;
             _logger = logger;
             _commandLogger = commandLogger;
             _activeProvider = databaseProvider.Name;
@@ -251,11 +256,9 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
         ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
-        public virtual string GenerateScript(
-            string fromMigration = null,
-            string toMigration = null,
-            bool idempotent = false)
+        public string GenerateScript(string fromMigration = null, string toMigration = null, MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
         {
+            var idempotent = options == MigrationsSqlGenerationOptions.Idempotent;
             IEnumerable<string> appliedMigrations;
             if (string.IsNullOrEmpty(fromMigration)
                 || fromMigration == Migration.InitialDatabase)
@@ -292,7 +295,6 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
                 var previousMigration = i != migrationsToRevert.Count - 1
                     ? migrationsToRevert[i + 1]
                     : actualTargetMigration;
-
                 _logger.MigrationGeneratingDownScript(this, migration, fromMigration, toMigration, idempotent);
 
                 foreach (var command in GenerateDownSql(migration, previousMigration))
@@ -348,13 +350,15 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
         ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
-        protected virtual IReadOnlyList<MigrationCommand> GenerateUpSql(Migration migration)
+        protected virtual IReadOnlyList<MigrationCommand> GenerateUpSql(
+            Migration migration,
+            MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
         {
             var insertCommand = _rawSqlCommandBuilder.Build(
                 _historyRepository.GetInsertScript(new HistoryRow(migration.GetId(), ProductInfo.GetVersion())));
 
             return _migrationsSqlGenerator
-                .Generate(migration.UpOperations, migration.TargetModel)
+                .Generate(migration.UpOperations, FinalizeModel(migration.TargetModel), options)
                 .Concat(new[] { new MigrationCommand(insertCommand, _currentContext.Context, _commandLogger) })
                 .ToList();
         }
@@ -364,16 +368,42 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations.Internal
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         protected virtual IReadOnlyList<MigrationCommand> GenerateDownSql(
-            Migration migration,
-            Migration previousMigration)
+            [NotNull] Migration migration,
+            Migration previousMigration,
+            MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
         {
             var deleteCommand = _rawSqlCommandBuilder.Build(
                 _historyRepository.GetDeleteScript(migration.GetId()));
 
             return _migrationsSqlGenerator
-                .Generate(migration.DownOperations, previousMigration?.TargetModel)
+                .Generate(migration.DownOperations, FinalizeModel(previousMigration?.TargetModel), options)
                 .Concat(new[] { new MigrationCommand(deleteCommand, _currentContext.Context, _commandLogger) })
                 .ToList();
+        }
+
+        private IModel FinalizeModel(IModel model)
+        {
+            if (model is IConventionModel conventionModel)
+            {
+                var conventionSet = _conventionSetBuilder.CreateConventionSet();
+
+                var typeMappingConvention = conventionSet.ModelFinalizingConventions.OfType<TypeMappingConvention>().FirstOrDefault();
+                if (typeMappingConvention != null)
+                {
+                    typeMappingConvention.ProcessModelFinalizing(conventionModel.Builder, null);
+                }
+
+                var relationalModelConvention =
+                    conventionSet.ModelFinalizedConventions.OfType<RelationalModelConvention>().FirstOrDefault();
+                if (relationalModelConvention != null)
+                {
+                    relationalModelConvention.ProcessModelFinalized(conventionModel);
+                }
+
+                return conventionModel.FinalizeModel();
+            }
+
+            return model;
         }
     }
 }

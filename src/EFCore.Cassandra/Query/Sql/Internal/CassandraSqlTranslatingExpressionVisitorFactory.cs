@@ -1,7 +1,6 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
-using EFCore.Cassandra.Query;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Cassandra.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 
 namespace Microsoft.EntityFrameworkCore.Cassandra.Query.Sql.Internal
@@ -15,9 +14,11 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Query.Sql.Internal
             _dependencies = dependencies;
         }
 
-        public RelationalSqlTranslatingExpressionVisitor Create(IModel model, QueryableMethodTranslatingExpressionVisitor queryableMethodTranslatingExpressionVisitor)
+        public RelationalSqlTranslatingExpressionVisitor Create(QueryCompilationContext queryCompilationContext, QueryableMethodTranslatingExpressionVisitor queryableMethodTranslatingExpressionVisitor)
         {
-            return new CassandraSqlTranslatingExpressionVisitor(_dependencies, model, queryableMethodTranslatingExpressionVisitor);
+            return new CassandraProjectionBindingExpressionVisitor(_dependencies,
+                queryCompilationContext,
+                queryableMethodTranslatingExpressionVisitor);
         }
     }
 }

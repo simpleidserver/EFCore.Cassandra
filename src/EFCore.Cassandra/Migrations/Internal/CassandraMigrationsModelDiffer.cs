@@ -1,7 +1,10 @@
-﻿using EFCore.Cassandra.Extensions;
+﻿// Copyright (c) SimpleIdServer. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+using EFCore.Cassandra.Extensions;
 using Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Cassandra.Storage.Internal;
 using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -11,9 +14,10 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Update.Internal;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -28,38 +32,327 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
             _cassandraOptionsExtension = CassandraOptionsExtension.Extract(relationalConnectionDependencies.ContextOptions);
         }
 
-        public override IReadOnlyList<MigrationOperation> GetDifferences(IModel source, IModel target)
+        #region Public methods
+
+        public override IReadOnlyList<MigrationOperation> GetDifferences(IRelationalModel source, IRelationalModel target)
         {
-            source = CleanModel(source);
-            target = CleanModel(target);
-            var diffContext = new DiffContext(source, target);
-            return Sort(Diff(source, target, diffContext), diffContext);
+            // source = CleanModel(source);
+            // target = CleanModel(target);
+            var diffContext = new DiffContext();
+            var result = Diff(source, target, diffContext).ToList();
+            return Sort(result, diffContext);
         }
 
-        protected override IEnumerable<MigrationOperation> Diff(IModel source, IModel target, DiffContext diffContext)
+        #endregion
+
+        #region Protected methods
+
+        protected override IEnumerable<MigrationOperation> Diff(
+            IRelationalModel source, 
+            IRelationalModel target, 
+            DiffContext diffContext)
         {
-            TrackData(source, target);
-            var result = new List<MigrationOperation>
+            var operations = Enumerable.Empty<MigrationOperation>();
+            operations = operations.Concat(new[] 
             {
                 new EnsureSchemaOperation
                 {
                     Name = _cassandraOptionsExtension.DefaultKeyspace
-                }
-            };
+                } 
+            });
+            if (source != null && target != null)
+            {
+                var sourceMigrationsAnnotations = source.GetAnnotations();
+                var targetMigrationsAnnotations = target.GetAnnotations();
+                if (source.Collation != target.Collation
+                     || HasDifferences(sourceMigrationsAnnotations, targetMigrationsAnnotations))
+                {
+                    var alterDatabaseOperation = new AlterDatabaseOperation
+                    {
+                        Collation = target.Collation,
+                        OldDatabase = { Collation = source.Collation }
+                    };
 
-            var schemaOperations = source != null && target != null
-                ? DiffAnnotations(source, target)
-                    .Concat(Diff(GetSchemas(source), GetSchemas(target), diffContext))
-                    .Concat(Diff(diffContext.GetSourceTables(), diffContext.GetTargetTables(), diffContext))
-                : target != null
-                    ? Add(target, diffContext)
-                    : source != null
-                        ? Remove(source, diffContext)
-                        : Enumerable.Empty<MigrationOperation>();
-            schemaOperations = schemaOperations.Concat(GetDataOperations(diffContext));
-            result.AddRange(schemaOperations);
+                    alterDatabaseOperation.AddAnnotations(targetMigrationsAnnotations);
+                    alterDatabaseOperation.OldDatabase.AddAnnotations(sourceMigrationsAnnotations);
+                    operations.Concat(new [] { alterDatabaseOperation });
+                }
+
+                operations = operations.Concat(Diff(GetSchemas(source), GetSchemas(target), diffContext))
+                   .Concat(Diff(source.Tables, target.Tables, diffContext));
+            }
+            else
+            {
+                operations = operations.Concat(target != null
+                       ? Add(target, diffContext)
+                       : source != null
+                           ? Remove(source, diffContext)
+                           : Enumerable.Empty<MigrationOperation>());
+            }
+
+            return operations.Concat(GetDataOperations(source, target, diffContext));
+        }
+
+        protected override IEnumerable<MigrationOperation> Add(
+            [NotNull] IRelationalModel target, 
+            [NotNull] DiffContext diffContext)
+        {
+            var result = DiffAnnotations(null, target)
+                .Concat(GetSchemas(target).SelectMany(t => Add(t, diffContext)))
+                .Concat(target.Tables.SelectMany(t => Add(t, diffContext)))
+                // .Concat(target.Sequences.SelectMany(t => Add(t, diffContext)))
+                .Concat(target.Tables.SelectMany(t => t.ForeignKeyConstraints).SelectMany(k => Add(k, diffContext)));
             return result;
         }
+
+        protected override IEnumerable<MigrationOperation> Add(
+            [NotNull] ITable target,
+            [NotNull] DiffContext diffContext)
+        {
+            var result = new List<MigrationOperation>();
+            if (target.IsExcludedFromMigrations)
+            {
+                return result;
+            }
+
+            var schema = _cassandraOptionsExtension.DefaultKeyspace;
+            var entityType = target.EntityTypeMappings.ElementAt(0).EntityType;
+            if (!entityType.IsUserDefinedType())
+            {
+                var createTableOperation = new CreateTableOperation
+                {
+                    Schema = schema,
+                    Name = target.Name,
+                    Comment = target.Comment
+                };
+                createTableOperation.AddAnnotations(target.GetAnnotations());
+                createTableOperation.Columns.AddRange(
+                    GetSortedColumns(target, _cassandraOptionsExtension.DefaultKeyspace)
+                    .SelectMany(p => Add(p, diffContext, inline: true)
+                ).Cast<AddColumnOperation>());
+                var primaryKey = target.PrimaryKey;
+                if (primaryKey != null)
+                {
+                    createTableOperation.PrimaryKey = Add(primaryKey, diffContext).Cast<AddPrimaryKeyOperation>().Single();
+                }
+
+                createTableOperation.UniqueConstraints.AddRange(
+                    target.UniqueConstraints.Where(c => !c.GetIsPrimaryKey()).SelectMany(c => Add(c, diffContext))
+                        .Cast<AddUniqueConstraintOperation>());
+                createTableOperation.CheckConstraints.AddRange(
+                    target.CheckConstraints.SelectMany(c => Add(c, diffContext))
+                        .Cast<AddCheckConstraintOperation>());
+                diffContext.AddCreate(target, createTableOperation);
+                result.Add(createTableOperation);
+                foreach (var operation in target.Indexes.SelectMany(i => Add(i, diffContext)))
+                {
+                    result.Add(operation);
+                }
+            }
+            else
+            {
+                var createUserDefinedOperation = new CreateUserDefinedTypeOperation
+                {
+                    Schema = target.Schema,
+                    Name = target.Name,
+                };
+                createUserDefinedOperation.Columns.AddRange(
+                    GetSortedColumns(target, _cassandraOptionsExtension.DefaultKeyspace)
+                    .SelectMany(p => Add(p, diffContext, inline: true)
+                ).Cast<AddColumnOperation>());
+                result.Add(createUserDefinedOperation);
+                foreach (var operation in target.Indexes.SelectMany(i => Add(i, diffContext)))
+                {
+                    result.Add(operation);
+                }
+            }
+
+            return result;
+        }
+
+        protected override IEnumerable<MigrationOperation> Add(
+            IColumn target, 
+            DiffContext diffContext, 
+            bool inline = false)
+        {
+            var table = target.Table;
+            var operation = new AddColumnOperation
+            {
+                Schema = table.Schema,
+                Table = table.Name,
+                Name = target.Name
+            };
+
+            var targetMapping = target.PropertyMappings.First();
+            var targetTypeMapping = targetMapping.TypeMapping;
+            Initialize(
+                operation, target, targetTypeMapping, target.IsNullable,
+                target.GetAnnotations(), inline);
+            yield return operation;
+        }
+
+        protected override IEnumerable<MigrationOperation> Remove(
+            [NotNull] ITable source, 
+            [NotNull] DiffContext diffContext)
+        {
+            if (source.IsExcludedFromMigrations)
+            {
+                yield break;
+            }
+
+            var schema = _cassandraOptionsExtension.DefaultKeyspace;
+            var entityType = source.EntityTypeMappings.ElementAt(0).EntityType;
+            MigrationOperation operation;
+            if (!entityType.IsUserDefinedType())
+            {
+                var dropOperation = new DropTableOperation { Schema = schema, Name = source.Name };
+                diffContext.AddDrop(source, dropOperation);
+                operation = dropOperation;
+            }
+            else
+            {
+                operation = new DropUserDefinedTypeOperation { Schema = schema, Name = source.Name };
+            }
+
+            operation.AddAnnotations(MigrationsAnnotations.ForRemove(source));
+            yield return operation;
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private IEnumerable<MigrationOperation> DiffAnnotations(
+            IRelationalModel source,
+            IRelationalModel target)
+        {
+            var targetMigrationsAnnotations = target?.GetAnnotations().ToList();
+
+            if (source == null)
+            {
+                if (targetMigrationsAnnotations?.Count > 0)
+                {
+                    var alterDatabaseOperation = new AlterDatabaseOperation();
+                    alterDatabaseOperation.AddAnnotations(targetMigrationsAnnotations);
+                    yield return alterDatabaseOperation;
+                }
+
+                yield break;
+            }
+
+            if (target == null)
+            {
+                var sourceMigrationsAnnotationsForRemoved = MigrationsAnnotations.ForRemove(source).ToList();
+                if (sourceMigrationsAnnotationsForRemoved.Count > 0)
+                {
+                    var alterDatabaseOperation = new AlterDatabaseOperation();
+                    alterDatabaseOperation.OldDatabase.AddAnnotations(sourceMigrationsAnnotationsForRemoved);
+                    yield return alterDatabaseOperation;
+                }
+
+                yield break;
+            }
+
+            var sourceMigrationsAnnotations = source?.GetAnnotations().ToList();
+            if (HasDifferences(sourceMigrationsAnnotations, targetMigrationsAnnotations))
+            {
+                var alterDatabaseOperation = new AlterDatabaseOperation();
+                alterDatabaseOperation.AddAnnotations(targetMigrationsAnnotations);
+                alterDatabaseOperation.OldDatabase.AddAnnotations(sourceMigrationsAnnotations);
+                yield return alterDatabaseOperation;
+            }
+        }
+
+        private void Initialize(
+            ColumnOperation columnOperation,
+            IColumn column,
+            RelationalTypeMapping typeMapping,
+            bool isNullable,
+            IEnumerable<IAnnotation> migrationsAnnotations,
+            bool inline = false)
+        {
+            var propertyInfo = column.PropertyMappings.ElementAt(0).Property.PropertyInfo;
+            var clrType = propertyInfo.PropertyType;
+            string storeType = column.StoreType;
+            var ct = column.PropertyMappings.ElementAt(0).Property.GetConfiguredColumnType();
+            if (!string.IsNullOrWhiteSpace(ct))
+            {
+                storeType = ct;
+            }
+            else if (clrType.IsList() && !CassandraTypeMappingSource.CLR_TYPE_MAPPINGS.ContainsKey(clrType))
+            {
+                Type genericType;
+                if (clrType.IsGenericType)
+                {
+                    genericType = clrType.GenericTypeArguments.First();
+                }
+                else
+                {
+                    genericType = clrType.GetElementType();
+                }
+
+                if (!CassandraTypeMappingSource.CLR_TYPE_MAPPINGS.ContainsKey(genericType))
+                {
+                    var et = column.Table.Model.Model.FindEntityType(genericType);
+                    storeType = storeType.Replace(genericType.Name, et.GetTableName());
+                }
+            }
+
+            if (column.DefaultValue == DBNull.Value)
+            {
+                throw new InvalidOperationException(
+                    RelationalStrings.DefaultValueUnspecified(
+                        column.Name,
+                        (column.Table.Name, column.Table.Schema).FormatTable()));
+            }
+
+            if (column.DefaultValueSql?.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    RelationalStrings.DefaultValueSqlUnspecified(
+                        column.Name,
+                        (column.Table.Name, column.Table.Schema).FormatTable()));
+            }
+
+            if (column.ComputedColumnSql?.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    RelationalStrings.ComputedColumnSqlUnspecified(
+                        column.Name,
+                        (column.Table.Name, column.Table.Schema).FormatTable()));
+            }
+
+            var property = column.PropertyMappings.First().Property;
+            var valueConverter = GetValueConverter(property, typeMapping);
+            columnOperation.ClrType
+                = (valueConverter?.ProviderClrType
+                    ?? typeMapping.ClrType).UnwrapNullableType();
+
+            columnOperation.ColumnType = storeType;
+            columnOperation.MaxLength = column.MaxLength;
+            columnOperation.Precision = column.Precision;
+            columnOperation.Scale = column.Scale;
+            columnOperation.IsUnicode = column.IsUnicode;
+            columnOperation.IsFixedLength = column.IsFixedLength;
+            columnOperation.IsRowVersion = column.IsRowVersion;
+            columnOperation.IsNullable = isNullable;
+            columnOperation.DefaultValue = column.DefaultValue
+                ?? (inline || isNullable
+                    ? null
+                    : GetDefaultValue(columnOperation.ClrType));
+            columnOperation.DefaultValueSql = column.DefaultValueSql;
+            columnOperation.ComputedColumnSql = column.ComputedColumnSql;
+            columnOperation.IsStored = column.IsStored;
+            columnOperation.Comment = column.Comment;
+            columnOperation.Collation = column.Collation;
+            columnOperation.AddAnnotations(migrationsAnnotations);
+        }
+        private ValueConverter GetValueConverter(IProperty property, RelationalTypeMapping typeMapping = null)
+            => property.GetValueConverter() ?? (property.FindRelationalTypeMapping() ?? typeMapping)?.Converter;
+
+        #endregion
+
+        #region Static methods
 
         public static bool CheckProperty(Assembly[] assms, IProperty property)
         {
@@ -77,7 +370,10 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
             return true;
         }
 
-        private static IModel CleanModel(IModel model)
+        private static IEntityType GetMainType(ITable table)
+            => table.EntityTypeMappings.FirstOrDefault(t => t.IsSharedTablePrincipal).EntityType;
+
+        private static IRelationalModel CleanModel(IRelationalModel model)
         {
             if (model == null)
             {
@@ -91,7 +387,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
             }
 
             var assms = AppDomain.CurrentDomain.GetAssemblies();
-            var entityTypes = model.GetEntityTypes().Cast<EntityType>();
+            var entityTypes = new List<EntityType>(); //  model.GetEntityTypes().Cast<EntityType>();
             foreach (var entityType in entityTypes)
             {
                 var newEntityType = entityType.ClrType != null ? result.AddEntityType(entityType.ClrType, ConfigurationSource.Explicit) : result.AddEntityType(entityType.Name, ConfigurationSource.Explicit);
@@ -132,225 +428,27 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
                 }
             }
 
-            return result;
+            return new RelationalModel(result);
         }
 
-        protected override IEnumerable<MigrationOperation> Remove(TableMapping source, DiffContext diffContext)
+        private static IEnumerable<IColumn> GetSortedColumns(ITable table, string schema)
         {
-            var schema = _cassandraOptionsExtension.DefaultKeyspace;
-            var type = source.GetRootType();
-            MigrationOperation operation;
-            if (!type.IsUserDefinedType())
+            var columns = table.Columns.ToHashSet();
+            var sortedColumns = new List<IColumn>(columns.Count);
+            foreach (var property in GetSortedProperties(GetMainType(table).GetRootType(), table, schema))
             {
-                var dropOperation = new DropTableOperation { Schema = schema, Name = source.Name };
-                diffContext.AddDrop(source, dropOperation);
-                operation = dropOperation;
-            }
-            else
-            {
-                operation = new DropUserDefinedTypeOperation { Schema = schema, Name = source.Name };
+                var column = table.FindColumn(property);
+                if (columns.Remove(column))
+                {
+                    sortedColumns.Add(column);
+                }
             }
 
-            operation.AddAnnotations(MigrationsAnnotations.ForRemove(source.EntityTypes[0]));
-            yield return operation;
+            return sortedColumns;
         }
 
-
-        protected override IEnumerable<MigrationOperation> Add(TableMapping target, DiffContext diffContext)
+        private static IEnumerable<IProperty> GetSortedProperties(IEntityType entityType, ITable table, string schema)
         {
-            var schema = _cassandraOptionsExtension.DefaultKeyspace;
-            var result = new List<MigrationOperation>();
-            var type = target.GetRootType();
-            if (!type.IsUserDefinedType())
-            {
-                var entityType = target.EntityTypes[0];
-                var createTableOperation = new CreateTableOperation
-                {
-                    Schema = schema,
-                    Name = target.Name,
-                    Comment = target.GetComment()
-                };
-                createTableOperation.AddAnnotations(MigrationsAnnotations.For(entityType));
-                createTableOperation.Columns.AddRange(GetSortedProperties(target).SelectMany(p => Add(p, diffContext, inline: true)).Cast<AddColumnOperation>());
-                var primaryKey = target.EntityTypes[0].FindPrimaryKey();
-                if (primaryKey != null)
-                {
-                    createTableOperation.PrimaryKey = Add(primaryKey, diffContext).Cast<AddPrimaryKeyOperation>().Single();
-                }
-
-                createTableOperation.UniqueConstraints.AddRange(
-                    target.GetKeys().Where(k => !k.IsPrimaryKey()).SelectMany(k => Add(k, diffContext))
-                        .Cast<AddUniqueConstraintOperation>());
-                createTableOperation.CheckConstraints.AddRange(
-                    target.GetCheckConstraints().SelectMany(c => Add(c, diffContext))
-                        .Cast<CreateCheckConstraintOperation>());
-
-                foreach (var targetEntityType in target.EntityTypes)
-                {
-                    diffContext.AddCreate(targetEntityType, createTableOperation);
-                }
-
-                result.Add(createTableOperation);
-                foreach (var operation in target.GetIndexes().SelectMany(i => Add(i, diffContext)))
-                {
-                    result.Add(operation);
-                }
-
-                return result.ToArray();
-            }
-
-            var createUserDefinedOperation = new CreateUserDefinedTypeOperation
-            {
-                Schema = schema,
-                Name = target.Name,
-            };
-            createUserDefinedOperation.Columns.AddRange(type.GetProperties().SelectMany(p => Add(p, diffContext, inline: true)).Cast<AddColumnOperation>());
-            result.Add(createUserDefinedOperation);
-            foreach (var operation in target.GetIndexes().SelectMany(i => Add(i, diffContext)))
-            {
-                result.Add(operation);
-            }
-
-            return result.ToArray();
-        }
-
-        protected override IEnumerable<MigrationOperation> Add(IProperty target, DiffContext diffContext, bool inline = false)
-        {
-            var schema = _cassandraOptionsExtension.DefaultKeyspace;
-            var targetEntityType = target.DeclaringEntityType.GetRootType();
-            var et = targetEntityType.Model.FindEntityType(target.ClrType);
-            Type clrType;
-            IEntityType userDefinedType = null;
-            if (et == null || !et.IsUserDefinedType())
-            {
-                clrType = target.ClrType;
-            }
-            else
-            {
-                clrType = target.ClrType;
-                userDefinedType = et;
-            }
-
-            var operation = new AddColumnOperation
-            {
-                Schema = schema,
-                Table = targetEntityType.GetTableName(),
-                Name = target.GetColumnName()
-            };
-
-            Initialize(
-                operation, target, clrType, target.IsColumnNullable(),
-                MigrationsAnnotations.For(target), inline, userDefinedType);
-            yield return operation;
-        }
-
-        private void Initialize(
-            ColumnOperation columnOperation,
-            IProperty property,
-            Type clrType,
-            bool isNullable,
-            IEnumerable<IAnnotation> migrationsAnnotations,
-            bool inline = false,
-            IEntityType userDefinedType = null)
-        {
-            var columnType = userDefinedType != null ? userDefinedType.GetTableName() : property.GetConfiguredColumnType();
-            if (property.ClrType.IsList() && !CassandraTypeMappingSource.CLR_TYPE_MAPPINGS.ContainsKey(property.ClrType))
-            {
-                Type genericType;
-                if (clrType.IsGenericType)
-                {
-                    genericType = clrType.GenericTypeArguments.First();
-                }
-                else
-                {
-                    genericType = clrType.GetElementType();
-                }
-
-                if (!CassandraTypeMappingSource.CLR_TYPE_MAPPINGS.ContainsKey(genericType))
-                {
-                    var targetEntityType = property.DeclaringEntityType.GetRootType();
-                    var et = targetEntityType.Model.FindEntityType(genericType);
-                    columnType = columnType.Replace(genericType.Name, et.GetTableName());
-                }
-            }
-
-            columnOperation.ClrType = clrType;
-            columnOperation.ColumnType = columnType;
-            columnOperation.MaxLength = property.GetMaxLength();
-            columnOperation.IsUnicode = property.IsUnicode();
-            columnOperation.IsFixedLength = property.IsFixedLength();
-            columnOperation.IsRowVersion = property.ClrType == typeof(byte[])
-                && property.IsConcurrencyToken
-                && property.ValueGenerated == ValueGenerated.OnAddOrUpdate;
-            columnOperation.IsNullable = isNullable;
-
-            var defaultValue = userDefinedType != null ? null : GetDefaultValue(property);
-            columnOperation.DefaultValue = (defaultValue == DBNull.Value ? null : defaultValue)
-                ?? (inline || isNullable
-                    ? null
-                    : userDefinedType != null ? null : GetDefaultValue(columnOperation.ClrType));
-
-            columnOperation.DefaultValueSql = property.GetDefaultValueSql();
-            columnOperation.ComputedColumnSql = property.GetComputedColumnSql();
-            columnOperation.Comment = property.GetComment();
-            columnOperation.AddAnnotations(migrationsAnnotations);
-        }
-
-        private object GetDefaultValue(IProperty property)
-        {
-            var value = property.GetDefaultValue();
-            return value;
-        }
-
-        private IEnumerable<MigrationOperation> DiffAnnotations(
-            IModel source,
-            IModel target)
-        {
-            var sourceMigrationsAnnotations = source == null ? null : MigrationsAnnotations.For(source).ToList();
-            var targetMigrationsAnnotations = target == null ? null : MigrationsAnnotations.For(target).ToList();
-
-            if (source == null)
-            {
-                if (targetMigrationsAnnotations?.Count > 0)
-                {
-                    var alterDatabaseOperation = new AlterDatabaseOperation();
-                    alterDatabaseOperation.AddAnnotations(targetMigrationsAnnotations);
-                    yield return alterDatabaseOperation;
-                }
-
-                yield break;
-            }
-
-            if (target == null)
-            {
-                sourceMigrationsAnnotations = MigrationsAnnotations.ForRemove(source).ToList();
-                if (sourceMigrationsAnnotations.Count > 0)
-                {
-                    var alterDatabaseOperation = new AlterDatabaseOperation();
-                    alterDatabaseOperation.OldDatabase.AddAnnotations(MigrationsAnnotations.ForRemove(source));
-                    yield return alterDatabaseOperation;
-                }
-
-                yield break;
-            }
-
-            if (HasDifferences(sourceMigrationsAnnotations, targetMigrationsAnnotations))
-            {
-                var alterDatabaseOperation = new AlterDatabaseOperation();
-                alterDatabaseOperation.AddAnnotations(targetMigrationsAnnotations);
-                alterDatabaseOperation.OldDatabase.AddAnnotations(sourceMigrationsAnnotations);
-                yield return alterDatabaseOperation;
-            }
-        }
-
-        private ValueConverter GetValueConverter(IProperty property) => TypeMappingSource.GetMapping(property).Converter;
-
-        private IEnumerable<IProperty> GetSortedProperties(TableMapping target)
-            => GetSortedProperties(target.GetRootType()).Distinct((x, y) => x.GetColumnName() == y.GetColumnName());
-
-        private IEnumerable<IProperty> GetSortedProperties(IEntityType entityType)
-        {
-            var schema = _cassandraOptionsExtension.DefaultKeyspace;
             var shadowProperties = new List<IProperty>();
             var shadowPrimaryKeyProperties = new List<IProperty>();
             var primaryKeyPropertyGroups = new Dictionary<PropertyInfo, IProperty>();
@@ -358,7 +456,6 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
             var unorderedGroups = new Dictionary<PropertyInfo, SortedDictionary<int, IProperty>>();
             var types = new Dictionary<Type, SortedDictionary<int, PropertyInfo>>();
             var model = entityType.Model;
-            //  Debugger.Launch();
             var declaredProperties = entityType.GetDeclaredProperties().ToList();
             declaredProperties.AddRange(entityType.ClrType.GetProperties().Where(p =>
             {
@@ -432,7 +529,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
                                 entityType)))
             {
                 var clrProperty = definingForeignKey.PrincipalToDependent?.PropertyInfo;
-                var properties = GetSortedProperties(definingForeignKey.DeclaringEntityType).ToList();
+                var properties = GetSortedProperties(definingForeignKey.DeclaringEntityType, table, schema).ToList();
                 if (clrProperty == null)
                 {
                     shadowProperties.AddRange(properties);
@@ -483,8 +580,10 @@ namespace Microsoft.EntityFrameworkCore.Migrations.Internal
                 .Concat(shadowPrimaryKeyProperties)
                 .Concat(sortedPropertyInfos.Where(pi => !primaryKeyPropertyGroups.ContainsKey(pi)).SelectMany(p => groups[p]))
                 .Concat(shadowProperties)
-                .Concat(entityType.GetDirectlyDerivedTypes().SelectMany(GetSortedProperties));
+                .Concat(entityType.GetDirectlyDerivedTypes().SelectMany(_ => GetSortedProperties(_, table, schema)));
         }
+
+        #endregion
 
         private class PropertyInfoEqualityComparer : IEqualityComparer<PropertyInfo>
         {

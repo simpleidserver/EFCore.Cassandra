@@ -191,7 +191,8 @@ namespace EFCore.Cassandra.Tests.Migrations
         {            
             var modelBuilder = new ModelBuilder(new ConventionSet());
             callback(modelBuilder);
-            return modelBuilder.Model;
+            var result = RelationalModel.Add((IConventionModel)modelBuilder.Model, null);
+            return result;
         }
 
         private class InternalObject

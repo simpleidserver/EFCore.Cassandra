@@ -10,11 +10,12 @@ namespace EFCore.Cassandra.Samples
 {
     public class FakeDbContext : DbContext
     {
+        private const string SCHEMA_NAME = "cv";
         public DbSet<Applicant> Applicants { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseCassandra("Contact Points=127.0.0.1;", "cv", opt =>
+            optionsBuilder.UseCassandra("Contact Points=127.0.0.1;", SCHEMA_NAME, opt =>
             {
                 opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName);
             }, o => {
@@ -39,28 +40,28 @@ namespace EFCore.Cassandra.Samples
         {
             var timeUuidConverter = new TimeUuidToGuidConverter();
             modelBuilder.EnsureKeyspaceCreated(new KeyspaceReplicationSimpleStrategyClass(2));
+            // Il ne faut pas passer le schema dans "ToTable"
             modelBuilder.Entity<Applicant>()
-                .ToTable("applicants")
+                .ToTable("applicants", SCHEMA_NAME)
                 .HasKey(p => new { p.Id, p.Order });
+            /*
             modelBuilder.Entity<Applicant>()
-                .ToTable("applicants")
                 .Property(p => p.Phones)
                 .HasColumnType("set<frozen<applicant_addr>>");
+            */
             modelBuilder.Entity<Applicant>()
                 .ForCassandraSetClusterColumns(_ => _.Order)
                 .ForCassandraSetClusteringOrderBy(new[] { new CassandraClusteringOrderByOption("Order", CassandraClusteringOrderByOptions.ASC) });
             modelBuilder.Entity<Applicant>()
                .Property(p => p.TimeUuid)
                .HasConversion(new TimeUuidToGuidConverter());
-            modelBuilder.Entity<Applicant>()
-                .Property(p => p.Id)
-                .HasColumnName("id");
-            modelBuilder.Entity<ApplicantAddress>()
-                .ToUserDefinedType("applicant_addr")
-                .HasNoKey();
             modelBuilder.Entity<ApplicantPhone>()
-                .ToUserDefinedType("applicant_phone")
+                .ToUserDefinedType("applicant_phone", SCHEMA_NAME)
                 .HasNoKey();
+            modelBuilder.Entity<ApplicantAddress>()
+                .ToUserDefinedType("applicant_addr", SCHEMA_NAME)
+                .HasNoKey();
+            base.OnModelCreating(modelBuilder);
         }
     }
 }

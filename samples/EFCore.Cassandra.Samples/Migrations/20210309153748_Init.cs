@@ -15,12 +15,15 @@ namespace EFCore.Cassandra.Samples.Migrations
             migrationBuilder.EnsureSchema(
                 name: "cv");
 
+            migrationBuilder.EnsureSchema(
+                name: "cv");
+
             migrationBuilder.CreateTable(
                 name: "applicants",
                 schema: "cv",
                 columns: table => new
                 {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
                     ApplicantId = table.Column<Guid>(type: "uuid", nullable: false),
                     LastName = table.Column<string>(type: "text", nullable: true),
@@ -32,22 +35,21 @@ namespace EFCore.Cassandra.Samples.Migrations
                     Integer = table.Column<int>(type: "int", nullable: false),
                     SmallInt = table.Column<short>(type: "smallint", nullable: false),
                     DateTimeOffset = table.Column<DateTimeOffset>(type: "timestamp", nullable: false),
-                    TimeUuid = table.Column<TimeUuid>(type: "uuid", nullable: false),
+                    TimeUuid = table.Column<Guid>(type: "uuid", nullable: false),
                     Sbyte = table.Column<sbyte>(type: "tinyint", nullable: false),
                     BigInteger = table.Column<BigInteger>(type: "varint", nullable: false),
                     Blob = table.Column<byte[]>(type: "blob", nullable: true),
                     LocalDate = table.Column<LocalDate>(type: "date", nullable: true),
                     Ip = table.Column<IPAddress>(type: "inet", nullable: true),
                     LocalTime = table.Column<LocalTime>(type: "time", nullable: true),
-                    Lst = table.Column<IList<string>>(type: "list<text>", nullable: true),
-                    LstInt = table.Column<IList<int>>(type: "list<int>", nullable: true),
+                    Lst = table.Column<IEnumerable<string>>(type: "list<text>", nullable: true),
+                    LstInt = table.Column<IEnumerable<int>>(type: "list<int>", nullable: true),
                     Dic = table.Column<IDictionary<string, string>>(type: "map<text,text>", nullable: true),
-                    Phones = table.Column<ApplicantPhone[]>(type: "set<frozen<applicant_addr>>", nullable: true),
-                    Address = table.Column<ApplicantAddress>(type: "applicant_addr", nullable: true)
+                    Phones = table.Column<IEnumerable<ApplicantPhone>>(type: "list<frozen<applicant_phone>>", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_applicants", x => new { x.id, x.Order });
+                    table.PrimaryKey("PK_applicants", x => new { x.Id, x.Order });
                 });
 
             migrationBuilder.CreateUserDefinedType(
@@ -55,8 +57,8 @@ namespace EFCore.Cassandra.Samples.Migrations
                 schema: "cv",
                 columns: table => new
                 {
-                    City = table.Column<string>(nullable: true),
-                    StreetNumber = table.Column<int>(nullable: false)
+                    StreetNumber = table.Column<int>(nullable: false),
+                    City = table.Column<string>(nullable: true)
                 });
 
             migrationBuilder.CreateUserDefinedType(
@@ -64,8 +66,8 @@ namespace EFCore.Cassandra.Samples.Migrations
                 schema: "cv",
                 columns: table => new
                 {
-                    IsMobile = table.Column<bool>(nullable: false),
-                    PhoneNumber = table.Column<string>(nullable: true)
+                    PhoneNumber = table.Column<string>(nullable: true),
+                    IsMobile = table.Column<bool>(nullable: false)
                 });
         }
 

@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Migrations
@@ -26,7 +25,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                     { typeof(AlterDatabaseOperation), (g, o, m, b) => g.Generate((AlterDatabaseOperation)o, m, b) },
                     { typeof(AlterSequenceOperation), (g, o, m, b) => g.Generate((AlterSequenceOperation)o, m, b) },
                     { typeof(AlterTableOperation), (g, o, m, b) => g.Generate((AlterTableOperation)o, m, b) },
-                    { typeof(CreateCheckConstraintOperation), (g, o, m, b) => g.Generate((CreateCheckConstraintOperation)o, m, b) },
+                    // { typeof(CreateCheckConstraintOperation), (g, o, m, b) => g.Generate((CreateCheckConstraintOperation)o, m, b) },
                     { typeof(CreateIndexOperation), (g, o, m, b) => g.Generate((CreateIndexOperation)o, m, b) },
                     { typeof(CreateSequenceOperation), (g, o, m, b) => g.Generate((CreateSequenceOperation)o, m, b) },
                     { typeof(CreateTableOperation), (g, o, m, b) => g.Generate((CreateTableOperation)o, m, b) },
@@ -55,7 +54,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
 
         public CassandraMigrationsSqlGenerator(MigrationsSqlGeneratorDependencies dependencies) : base(dependencies) { }
 
-        public override IReadOnlyList<MigrationCommand> Generate(IReadOnlyList<MigrationOperation> operations, IModel model = null)
+        public override IReadOnlyList<MigrationCommand> Generate(IReadOnlyList<MigrationOperation> operations, IModel model = null, MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
         {
             var builder = new MigrationCommandListBuilder(Dependencies);
             var orderedOperations = operations.OrderBy(c => c, new MigrationOpComparer());

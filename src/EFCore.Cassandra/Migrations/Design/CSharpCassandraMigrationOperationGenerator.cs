@@ -1,10 +1,9 @@
 ﻿// Copyright (c) SimpleIdServer. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Migrations.Design

@@ -35,9 +35,10 @@ namespace Microsoft.EntityFrameworkCore
             return entityTypeBuilder;
         }
 
-        public static EntityTypeBuilder ToUserDefinedType(this EntityTypeBuilder entityTypeBuilder, string name)
+        public static EntityTypeBuilder ToUserDefinedType(this EntityTypeBuilder entityTypeBuilder, string name, string schema)
         {
             entityTypeBuilder.Metadata.SetTableName(name);
+            entityTypeBuilder.Metadata.SetSchema(schema);
             entityTypeBuilder.Metadata.SetIsUserDefinedType();
             return entityTypeBuilder;
         }
