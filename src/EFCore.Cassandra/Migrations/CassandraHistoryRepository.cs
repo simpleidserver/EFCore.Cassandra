@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
@@ -55,14 +54,14 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations
                 .FindProperty(nameof(CassandraHistoryRow.ProductVersion))
                 .GetColumnName();
 
-        protected virtual string ExistsScript => $"SELECT count(*) FROM system_schema.tables WHERE keyspace_name='{TableSchema}' and table_name='{TableName}'";
-        
+        protected virtual string ExistsScript => $"SELECT count(keyspace_name) FROM system_schema.tables WHERE keyspace_name='{TableSchema}' and table_name='{TableName}'";
+
         private IModel EnsureModel()
         {
             if (_historyModel == null)
             {
                 Debugger.Launch();
-                var conventionSet = Dependencies.ConventionSetBuilder.CreateConventionSet();    
+                var conventionSet = Dependencies.ConventionSetBuilder.CreateConventionSet();
                 ConventionSet.Remove(conventionSet.ModelInitializedConventions, typeof(DbSetFindingConvention));
                 if (!(AppContext.TryGetSwitch("Microsoft.EntityFrameworkCore.Issue23312", out var enabled) && enabled))
                 {
@@ -73,7 +72,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations
                 modelBuilder.Entity<CassandraHistoryRow>(
                     x =>
                     {
-                        ConfigureTable(x);  
+                        ConfigureTable(x);
                         x.ToTable(TableName, TableSchema);
                     });
                 modelBuilder.Entity<CassandraHistoryRow>()
@@ -85,15 +84,19 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations
             return _historyModel;
         }
 
-        public bool Exists() => Dependencies.DatabaseCreator.Exists()
-               && InterpretExistsResult(
-                   Dependencies.RawSqlCommandBuilder.Build(ExistsScript).ExecuteScalar(
-                       new RelationalCommandParameterObject(
-                           Dependencies.Connection,
-                           null,
-                           null,
-                           Dependencies.CurrentContext.Context,
-                           Dependencies.CommandLogger)));
+        public bool Exists() 
+        {
+            var exists = Dependencies.DatabaseCreator.Exists()
+              && InterpretExistsResult(
+                  Dependencies.RawSqlCommandBuilder.Build(ExistsScript).ExecuteScalar(
+                      new RelationalCommandParameterObject(
+                          Dependencies.Connection,
+                          null,
+                          null,
+                          Dependencies.CurrentContext.Context,
+                          Dependencies.CommandLogger)));
+            return exists;
+        }
 
         public async Task<bool> ExistsAsync(CancellationToken cancellationToken = default) =>
             await Dependencies.DatabaseCreator.ExistsAsync(cancellationToken)
@@ -243,6 +246,11 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Migrations
 
         protected bool InterpretExistsResult(object value)
         {
+            if (value == null)
+            {
+                return false;
+            }
+
             return (Int64)value > 0;
         }
     }

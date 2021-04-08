@@ -15,25 +15,8 @@ namespace EFCore.Cassandra.Samples
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseCassandra("Contact Points=127.0.0.1;", SCHEMA_NAME, opt =>
-            {
-                opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName);
-            }, o => {
-
-                o.WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
-                    .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000))
-                    .WithRetryPolicy(new DefaultRetryPolicy())
-                    .WithLoadBalancingPolicy(new TokenAwarePolicy(Policies.DefaultPolicies.LoadBalancingPolicy))
-                    .WithDefaultKeyspace(GetType().Name)
-                    .WithPoolingOptions(
-                    PoolingOptions.Create()
-                        .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Remote, 1_000_000)
-                        .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1_000_000)
-                        .SetMaxConnectionsPerHost(HostDistance.Local, 1_000_000)
-                        .SetMaxConnectionsPerHost(HostDistance.Remote, 1_000_000)
-                        .SetMaxRequestsPerConnection(1_000_000)
-                );
-            });
+            // ConfigureDataxAstra(optionsBuilder);
+            ConfigureLocalDB(optionsBuilder);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -62,6 +45,40 @@ namespace EFCore.Cassandra.Samples
                 .ToUserDefinedType("applicant_addr", SCHEMA_NAME)
                 .HasNoKey();
             base.OnModelCreating(modelBuilder);
+        }
+
+        private void ConfigureDataxAstra(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSecuredCassandra(SCHEMA_NAME, opt =>
+            {
+                opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName);
+            }, o => {
+                o.WithCloudSecureConnectionBundle(@"c:\Projects\EFCore.Cassandra\secure-connect-simpleidserver.zip")
+                    .WithCredentials("OyLmLXBhXQgmyxOOmEIlBgyq", "+L7SMKvoH1_A97CjYXK4xx7wl96d37HnT9Wg-n426MjTN0H,q4TqR2goC170p7MiSP8QKTMFxXUR7Lo9QAXy9YEBDdD++jHSZnd5qEwm_zT80xl1_uo0kO_PXoswFL+K");
+            });
+        }
+
+        private void ConfigureLocalDB(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseCassandra("Contact Points=127.0.0.1;", SCHEMA_NAME, opt =>
+            {
+                opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName);
+            }, o => {
+
+                o.WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalOne))
+                    .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000))
+                    .WithRetryPolicy(new DefaultRetryPolicy())
+                    .WithLoadBalancingPolicy(new TokenAwarePolicy(Policies.DefaultPolicies.LoadBalancingPolicy))
+                    .WithDefaultKeyspace(GetType().Name)
+                    .WithPoolingOptions(
+                    PoolingOptions.Create()
+                        .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Remote, 1_000_000)
+                        .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1_000_000)
+                        .SetMaxConnectionsPerHost(HostDistance.Local, 1_000_000)
+                        .SetMaxConnectionsPerHost(HostDistance.Remote, 1_000_000)
+                        .SetMaxRequestsPerConnection(1_000_000)
+                );
+            });
         }
     }
 }

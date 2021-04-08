@@ -15,6 +15,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
     {
         private Action<Builder> _callback;
         private string _defaultKeyspace;
+        private bool _isConnectionSecured = false;
 
         public CassandraOptionsExtension() { }
 
@@ -24,6 +25,7 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
 
         public virtual Action<Builder> ClusterBuilder => _callback;
         public virtual string DefaultKeyspace => _defaultKeyspace;
+        public virtual bool IsConnectionSecured => _isConnectionSecured;
 
         public override void ApplyServices(IServiceCollection services)
         {
@@ -42,6 +44,13 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
             return clone;
         }
 
+        public CassandraOptionsExtension WithSecuredConnection()
+        {
+            var clone = (CassandraOptionsExtension)Clone();
+            clone._isConnectionSecured = true;
+            return clone;
+        }
+
         public CassandraOptionsExtension WithDefaultKeyspace(string keyspace)
         {
             var clone = (CassandraOptionsExtension)Clone();
@@ -53,7 +62,8 @@ namespace Microsoft.EntityFrameworkCore.Cassandra.Infrastructure.Internal
         protected override RelationalOptionsExtension Clone() => new CassandraOptionsExtension(this)
         {
             _callback = _callback,
-            _defaultKeyspace = _defaultKeyspace
+            _defaultKeyspace = _defaultKeyspace,
+            _isConnectionSecured = _isConnectionSecured
         };
 
         public new static CassandraOptionsExtension Extract(IDbContextOptions options)

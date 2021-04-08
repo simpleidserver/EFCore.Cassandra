@@ -32,6 +32,25 @@ namespace Microsoft.EntityFrameworkCore
             return optionsBuilder;
         }
 
+        public static DbContextOptionsBuilder UseSecuredCassandra(this DbContextOptionsBuilder optionsBuilder, string defaultKeyspace, Action<CassandraDbContextOptionsBuilder> cassandraOptionsAction = null, Action<Builder> clusterBuilderCallback = null)
+        {
+            var extension = (CassandraOptionsExtension)GetOrCreateExtension(optionsBuilder).WithConnectionString("Contact Points=127.0.0.1;");
+            extension = extension.WithSecuredConnection();
+            if (!string.IsNullOrWhiteSpace(defaultKeyspace))
+            {
+                extension = extension.WithDefaultKeyspace(defaultKeyspace);
+            }
+
+            if (clusterBuilderCallback != null)
+            {
+                extension = extension.WithCallbackClusterBuilder(clusterBuilderCallback);
+            }
+
+            ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
+            cassandraOptionsAction?.Invoke(new CassandraDbContextOptionsBuilder(optionsBuilder));
+            return optionsBuilder;
+        }
+
         private static CassandraOptionsExtension GetOrCreateExtension(DbContextOptionsBuilder options) => options.Options.FindExtension<CassandraOptionsExtension>() ?? new CassandraOptionsExtension();
     }
 }

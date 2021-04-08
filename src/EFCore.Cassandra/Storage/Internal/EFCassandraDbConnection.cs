@@ -19,7 +19,6 @@ namespace EFCore.Cassandra.Storage.Internal
     {
         private readonly static ConcurrentDictionary<string, Cluster> _clusters = new ConcurrentDictionary<string, Cluster>();
         private CassandraConnectionStringBuilder _connectionStringBuilder;
-        private Cluster _managedCluster;
         private readonly CassandraOptionsExtension _cassandraOptionsExtension;
         private readonly ICurrentDbContext _currentDbContext;
 
@@ -42,7 +41,16 @@ namespace EFCore.Cassandra.Storage.Internal
         {
             if (!_clusters.TryGetValue(_connectionStringBuilder.ClusterName, out Cluster cluster))
             {
-                var builder = _connectionStringBuilder.MakeClusterBuilder();
+                Builder builder;
+                if (_cassandraOptionsExtension.IsConnectionSecured)
+                {
+                    builder = Cluster.Builder();
+                }
+                else
+                {
+                    builder = _connectionStringBuilder.MakeClusterBuilder();
+                }
+
                 OnBuildingCluster(builder);
                 cluster = builder.Build();
                 _clusters.TryAdd(_connectionStringBuilder.ClusterName, cluster);
