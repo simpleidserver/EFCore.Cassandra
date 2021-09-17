@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Cassandra.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore
 {
@@ -17,7 +18,8 @@ namespace Microsoft.EntityFrameworkCore
                 return new string[0];
             }
 
-            return (IEnumerable<string>)result.Value;
+            StoreObjectIdentifier identifier = new StoreObjectIdentifier();
+            return model.GetProperties().Where(p => p.Name == result.Value.ToString()).Select(p => p.GetColumnName(in identifier));
         }
 
         public static IEnumerable<string> GetStaticColumns(this IEntityType model)
@@ -28,7 +30,8 @@ namespace Microsoft.EntityFrameworkCore
                 return new string[0];
             }
 
-            return (IEnumerable<string>)result.Value;
+            StoreObjectIdentifier identifier = new StoreObjectIdentifier();
+            return model.GetProperties().Where(p => p.Name == result.Value.ToString()).Select(p => p.GetColumnName(in identifier));
         }
 
         public static IEnumerable<CassandraClusteringOrderByOption> GetClusteringOrderByOptions(this IEntityType model)
