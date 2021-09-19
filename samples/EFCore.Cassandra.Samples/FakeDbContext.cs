@@ -60,7 +60,7 @@ namespace EFCore.Cassandra.Samples
 
         private void ConfigureLocalDB(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseCassandra("Contact Points=127.0.0.1;", SCHEMA_NAME, opt =>
+            optionsBuilder.UseCassandra("Contact Points=127.0.0.1;Username=cassandra;Password=password", SCHEMA_NAME, opt =>
             {
                 opt.MigrationsHistoryTable(HistoryRepository.DefaultTableName);
             }, o => {

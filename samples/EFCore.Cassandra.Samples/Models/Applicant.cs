@@ -20,6 +20,7 @@ namespace EFCore.Cassandra.Samples.Models
         public double Double { get; set; }
         public float Float { get; set; }
         public int Integer { get; set; }
+        public Nullable<int> NullableInteger { get; set; }
         public short SmallInt { get; set; }
         public DateTimeOffset DateTimeOffset { get; set; }
         public TimeUuid TimeUuid { get; set; }

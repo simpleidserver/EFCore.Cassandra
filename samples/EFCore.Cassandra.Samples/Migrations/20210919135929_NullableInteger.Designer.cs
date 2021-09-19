@@ -8,14 +8,16 @@ using EFCore.Cassandra.Samples;
 using EFCore.Cassandra.Samples.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace EFCore.Cassandra.Samples.Migrations
 {
     [DbContext(typeof(FakeDbContext))]
-    partial class FakeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210919135929_NullableInteger")]
+    partial class NullableInteger
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
