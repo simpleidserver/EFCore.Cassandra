@@ -8,14 +8,16 @@ using EFCore.Cassandra.Samples;
 using EFCore.Cassandra.Samples.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace EFCore.Cassandra.Samples.Migrations
 {
     [DbContext(typeof(FakeDbContext))]
-    partial class FakeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210919154756_AddEmail")]
+    partial class AddEmail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -135,24 +137,6 @@ namespace EFCore.Cassandra.Samples.Migrations
 
                     b
                         .HasAnnotation("Cassandra:IsUserDefinedType", true);
-                });
-
-            modelBuilder.Entity("EFCore.Cassandra.Samples.Models.User", b =>
-                {
-                    b.Property<string>("Email")
-                        .HasColumnType("text")
-                        .HasColumnName("email");
-
-                    b.Property<string>("Id")
-                        .HasColumnType("text")
-                        .HasColumnName("id");
-
-                    b.HasKey("Email");
-
-                    b.ToTable("users", "cv");
-
-                    b
-                        .HasAnnotation("Cassandra:ClusterColumns", new[] { "Email" });
                 });
 #pragma warning restore 612, 618
         }

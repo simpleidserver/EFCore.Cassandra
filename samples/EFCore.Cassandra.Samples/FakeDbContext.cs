@@ -12,7 +12,7 @@ namespace EFCore.Cassandra.Samples
     {
         private const string SCHEMA_NAME = "cv";
         public DbSet<Applicant> Applicants { get; set; }
-
+        public DbSet<User> Users { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             // ConfigureDataxAstra(optionsBuilder);
@@ -38,12 +38,23 @@ namespace EFCore.Cassandra.Samples
             modelBuilder.Entity<Applicant>()
                .Property(p => p.TimeUuid)
                .HasConversion(new TimeUuidToGuidConverter());
+            modelBuilder.Entity<Applicant>()
+                .Property(p => p.Email).HasColumnName("email");
             modelBuilder.Entity<ApplicantPhone>()
                 .ToUserDefinedType("applicant_phone", SCHEMA_NAME)
                 .HasNoKey();
             modelBuilder.Entity<ApplicantAddress>()
                 .ToUserDefinedType("applicant_addr", SCHEMA_NAME)
                 .HasNoKey();
+            modelBuilder.Entity<User>()
+                .ToTable("users", SCHEMA_NAME)
+                .HasKey(u => u.Email);
+            modelBuilder.Entity<User>()
+                .Property(u => u.Id).HasColumnName("id");
+            modelBuilder.Entity<User>()
+                .Property(u => u.Email).HasColumnName("email");
+            modelBuilder.Entity<User>()
+                .ForCassandraSetClusterColumns(_ => _.Email);
             base.OnModelCreating(modelBuilder);
         }
 

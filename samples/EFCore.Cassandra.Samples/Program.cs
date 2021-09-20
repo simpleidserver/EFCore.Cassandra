@@ -31,6 +31,19 @@ namespace EFCore.Cassandra.Samples
                 dbContext.Applicants.Add(app);
                 dbContext.SaveChanges();
                 Console.WriteLine("Applicant is added");
+
+                Console.WriteLine("Add user");
+                var user = new User
+                {
+                    Email = "sid@mail.com",
+                    Id = "id"
+                };
+                dbContext.Users.Add(user);
+                dbContext.SaveChanges();
+                Console.WriteLine("User is added");
+
+                Console.WriteLine("Get user");
+                var users = dbContext.Users.ToList();
                 
                 Console.WriteLine($"Number of applicants '{dbContext.Applicants.LongCount()}'");
                 
@@ -64,7 +77,14 @@ namespace EFCore.Cassandra.Samples
                 dbContext.SaveChanges();
                 Console.WriteLine("Applicant is removed");
 
+                Console.WriteLine("Remove the user");
+                user = dbContext.Users.First();
+                dbContext.Users.Remove(user);
+                dbContext.SaveChanges();
+                Console.WriteLine("User is removed");
+
                 Console.WriteLine($"Number of applicants '{dbContext.Applicants.LongCount()}'");
+                Console.WriteLine($"Number of users '{dbContext.Users.LongCount()}'");
                 Console.ReadLine();
             }
         }
@@ -98,6 +118,7 @@ namespace EFCore.Cassandra.Samples
                 Integer = 3,
                 Float = 4,
                 Sbyte = 0,
+                Email = "email",
                 TimeUuid = timeUuid,
                 DateTimeOffset = DateTimeOffset.Now,
                 Long = 22,

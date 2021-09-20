@@ -240,11 +240,24 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         protected override void PrimaryKeyConstraint(AddPrimaryKeyOperation operation, IModel model, MigrationCommandListBuilder builder)
         {
             var entityType = model.GetEntityTypes().First(s => s.GetTableName() == operation.Table);
+            var annots = entityType.GetAnnotations();
             builder
                 .Append("PRIMARY KEY ");
-            var clusterColumns = entityType.GetClusterColumns();
+            var properties = entityType.GetProperties();
+            var clusterColumns = entityType.GetClusterColumns().Select(c =>
+            {
+                var property = properties.FirstOrDefault(p => p.Name.Equals(c, StringComparison.InvariantCultureIgnoreCase));
+                if (property != null)
+                {
+                    return property.GetColumnName();
+                }
+
+                return c;
+            });
+            var pks = operation.Columns;
             builder.Append("(")
-                .Append("(").Append(ColumnList(operation.Columns.Except(clusterColumns).ToArray())).Append(")");
+                .Append("(").Append(ColumnList(pks)).Append(")");
+            clusterColumns = clusterColumns.Except(pks).ToArray();
             if (clusterColumns.Any())
             {
                 builder.Append(",");

@@ -35,5 +35,6 @@ namespace EFCore.Cassandra.Samples.Models
         public IDictionary<string, string> Dic { get; set; }
         public ApplicantAddress Address { get; set; }
         public ApplicantPhone[] Phones { get; set; }
+        public string Email { get; set; }
     }
 }
